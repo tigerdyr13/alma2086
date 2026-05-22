@@ -7,6 +7,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 type Message = {
   role: 'user' | 'alma';
   text: string;
+  /** Sættes når browser blokerer autoplay – tryk for at afspille */
+  audioSrc?: string;
 };
 
 type ApiHistory = {
@@ -67,6 +69,10 @@ function toApiHistory(messages: Message[]): ApiHistory[] {
   }));
 }
 
+// Minimal lydløs WAV – bruges til at låse op for afspilning under brugerens tryk
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
 // ── Komponent ──────────────────────────────────────────────────────────
 
 export default function AlmaChat() {
@@ -81,6 +87,70 @@ export default function AlmaChat() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
+
+  const getAudioElement = useCallback(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
+    return audioRef.current;
+  }, []);
+
+  // Kør synkront ved pointer down – beholdes i browserens "user gesture"-kæde
+  const unlockAudio = useCallback(() => {
+    const audio = getAudioElement();
+    audio.muted = true;
+    audio.src = SILENT_WAV;
+    audio
+      .play()
+      .then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+        audio.removeAttribute('src');
+      })
+      .catch(() => {
+        audio.muted = false;
+      });
+  }, [getAudioElement]);
+
+  const playAlmaAudio = useCallback(
+    async (audioSrc: string, messageIndex?: number) => {
+      const audio = getAudioElement();
+      audio.src = audioSrc;
+      audioRef.current = audio;
+
+      setStatus('speaking');
+      setError(null);
+
+      audio.onended = () => {
+        setStatus('idle');
+        if (messageIndex !== undefined) {
+          setMessages((prev) =>
+            prev.map((m, i) => (i === messageIndex ? { ...m, audioSrc: undefined } : m)),
+          );
+        }
+      };
+      audio.onerror = () => {
+        setError('Kunne ikke afspille Almas stemme.');
+        setStatus('idle');
+      };
+
+      try {
+        await audio.play();
+        if (messageIndex !== undefined) {
+          setMessages((prev) =>
+            prev.map((m, i) => (i === messageIndex ? { ...m, audioSrc: undefined } : m)),
+          );
+        }
+      } catch {
+        setStatus('idle');
+        if (messageIndex !== undefined) return false;
+        return false;
+      }
+      return true;
+    },
+    [getAudioElement],
+  );
 
   // Hold messagesRef synkroniseret for stabil brug i callbacks
   useEffect(() => {
@@ -178,30 +248,22 @@ export default function AlmaChat() {
       }
 
       const { transcript, replyText, audioBase64, mimeType: audioMime } = data;
-
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', text: transcript },
-        { role: 'alma', text: replyText },
-      ]);
-
-      // Afspil Almas stemme
-      setStatus('speaking');
       const audioSrc = `data:${audioMime};base64,${audioBase64}`;
-      const audio = new Audio(audioSrc);
-      audioRef.current = audio;
 
-      audio.onended = () => setStatus('idle');
-      audio.onerror = () => {
-        setError('Kunne ikke afspille Almas stemme.');
-        setStatus('idle');
-      };
-
-      await audio.play().catch(() => {
-        // Autoplay blokeret – vis fejl men vis stadig teksten
-        setError('Autoplay blokeret. Tryk på svaret for at afspille.');
-        setStatus('idle');
+      let almaMessageIndex = 0;
+      setMessages((prev) => {
+        almaMessageIndex = prev.length + 1;
+        return [
+          ...prev,
+          { role: 'user', text: transcript },
+          { role: 'alma', text: replyText, audioSrc },
+        ];
       });
+
+      const played = await playAlmaAudio(audioSrc, almaMessageIndex);
+      if (!played) {
+        setStatus('idle');
+      }
     } catch (err) {
       console.error('[AlmaChat] API error:', err);
       const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
@@ -212,13 +274,21 @@ export default function AlmaChat() {
 
   // ── Pointer-events (fungerer på både touch og mus) ───────────────────
 
+  const handlePlayAlmaMessage = useCallback(
+    (audioSrc: string, index: number) => {
+      void playAlmaAudio(audioSrc, index);
+    },
+    [playAlmaAudio],
+  );
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       if (status !== 'idle' && status !== 'error') return;
+      unlockAudio();
       startRecording();
     },
-    [status, startRecording],
+    [status, startRecording, unlockAudio],
   );
 
   const handlePointerUp = useCallback(
@@ -262,7 +332,22 @@ export default function AlmaChat() {
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message chat-message--${msg.role}`}>
             <span className="chat-label">{msg.role === 'user' ? 'DU' : 'ALMA'}</span>
-            <p className="chat-text">{msg.text}</p>
+            {msg.role === 'alma' && msg.audioSrc ? (
+              <button
+                type="button"
+                className="chat-text chat-play-button"
+                onClick={() => handlePlayAlmaMessage(msg.audioSrc!, i)}
+                aria-label="Afspil Almas stemme"
+              >
+                <span className="chat-play-icon" aria-hidden="true">
+                  ▶
+                </span>
+                {msg.text}
+                <span className="chat-play-hint">Tryk for at høre Alma</span>
+              </button>
+            ) : (
+              <p className="chat-text">{msg.text}</p>
+            )}
           </div>
         ))}
       </div>
