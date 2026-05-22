@@ -49,7 +49,9 @@ ELEVENLABS_VOICE_ID=...
 npm run dev
 ```
 
-Åbn [http://localhost:3005](http://localhost:3005) i browseren.
+Åbn [http://localhost:3005/s/intro](http://localhost:3005/s/intro) i browseren.
+
+Test andre stages direkte via URL, fx `/s/fyrrum`, `/s/keramik`, `/s/loft`.
 
 > **Vigtigt (HTTPS på mobil):** Mikrofon-adgang kræver HTTPS eller `localhost`. Til test fra telefon på lokalt netværk kan du bruge:
 > ```bash
@@ -154,17 +156,119 @@ pm2 restart alma2086
 
 ---
 
+## Story engine & stages
+
+Alma2086 er bygget som en **narrativ engine** — ikke bare en chat. Hvert fysisk stop på skattejagten har sit eget **stage** med egen kontekst, hints og begrænsninger.
+
+### Routes
+
+| URL | Stage |
+|-----|-------|
+| `/s/intro` | Første kontakt |
+| `/s/fyrrum` | Fyrrummet |
+| `/s/keramik` | Keramikrummet |
+| `/s/ude` | Udearealet |
+| `/s/loft` | Loftet |
+| `/s/finale` | Afslutning |
+
+Ukendt stage → dramatisk **SIGNAL LOST**-side.
+
+`/` redirecter automatisk til `/s/intro`.
+
+### Central config: `lib/stages.ts`
+
+Al story-data samles her (klar til senere adminpanel):
+
+```typescript
+export const stages = {
+  fyrrum: {
+    title: 'Fyrrummet',
+    signalLocation: 'FYRRUMMET',
+    almaKnows: '...',
+    hints: ['lille hint', 'medium hint', 'stærkt hint'],
+    forbiddenTopics: ['loft', 'finale'],
+    ambience: '...',
+    connectionStability: 62,
+  },
+  // ...
+};
+```
+
+### Sådan opretter du et nyt stage
+
+1. Tilføj stage-id til `STAGE_IDS` i `lib/stages.ts`
+2. Tilføj et objekt i `stages` med title, hints, forbiddenTopics osv.
+3. Opret QR-kode der peger på `https://alma2086.babehill.com/s/dit-stage-navn`
+4. Test i dev med debug-panelet (kun `npm run dev`)
+
+Ingen UI- eller API-ændringer nødvendige — prompts bygges automatisk.
+
+### Systemprompt
+
+`lib/build-system-prompt.ts` bygger prompten dynamisk ud fra:
+
+- Base Alma-personlighed
+- Aktuelt stage (hvor børnene er, hvad Alma ved)
+- `forbiddenTopics` (hvad hun ikke må afsløre)
+- Hint-niveau (0–3) når børn er stuck
+
+Preview i development: `GET /api/debug/prompt?stage=fyrrum&hintLevel=1&stuck=1`
+
+### Hint-system
+
+Hver stage har 3 gradvise hints i `stages.ts`.
+
+Når børn siger fx *"vi kan ikke finde det"*:
+1. Backend detekterer stuck-request
+2. Alma får hint niveau 0 → 1 → 2
+3. `hintLevel` gemmes per stage i `localStorage`
+
+### Session memory
+
+Per stage i browseren (`localStorage`):
+
+- Chatbeskeder
+- Hint-niveau
+- Besøgstidspunkt
+
+Nøgle: `alma2086:stage:fyrrum` osv.
+
+Ingen database — hver QR-URL er selvstændig.
+
+### QR-koder (senere)
+
+Hver QR-kode peger direkte på en stage-URL:
+
+```
+https://alma2086.babehill.com/s/fyrrum
+```
+
+Ingen global app-state nødvendig — scanning åbner straks det rigtige kapitel.
+
+### Push events (foundation)
+
+`lib/push-events.ts` indeholder placeholder-struktur til fremtidige afbrydelser:
+
+```typescript
+{ trigger: 'time', delaySeconds: 45, displayText: '...', speechText: '...' }
+```
+
+Ingen runtime endnu — kun datastruktur.
+
+---
+
 ## Arkitektur
 
 ```
-Browser
+Browser (/s/[stage])
   └─ AlmaChat.tsx
-       ├─ MediaRecorder (optager audio som WebM/Opus)
-       └─ POST /api/talk  (multipart/form-data)
-            ├─ audio → OpenAI Whisper → transcript
-            ├─ transcript + history → OpenAI Chat → { displayText, speechText }
+       ├─ localStorage session per stage
+       ├─ MediaRecorder
+       └─ POST /api/talk
+            ├─ currentStage + hintLevel
+            ├─ audio → Whisper → transcript
+            ├─ buildSystemPrompt(stage) + history → OpenAI → { displayText, speechText }
             └─ speechText → ElevenLabs eleven_v3 → audioBase64
-                 └─ Browser afspiller base64-lyd
 ```
 
 ### API: `POST /api/talk`
@@ -174,36 +278,43 @@ Browser
 | Felt | Type | Beskrivelse |
 |------|------|-------------|
 | `audio` | File | WebM/Opus-lydoptagelse |
-| `history` | string (JSON) | Array af seneste beskeder til kontekst |
+| `history` | string (JSON) | Seneste beskeder (displayText for Alma) |
+| `currentStage` | string | Stage-id, fx `fyrrum` |
+| `hintLevel` | string | Antal hints allerede givet (0–3) |
 
 **Response (JSON):**
 
 ```json
 {
-  "transcript": "Hvad hedder du?",
-  "displayText": "Shh... signalet hakker. Hvem er I?",
-  "speechText": "[whispers] Shh... [hesitates] signalet hakker. [nervous] Hvem er I?",
+  "transcript": "Vi kan ikke finde det",
+  "displayText": "Shh... kig hvor det er varmest.",
+  "speechText": "[whispers] Shh... [nervous] kig hvor det er varmest.",
   "audioBase64": "...",
-  "mimeType": "audio/mpeg"
+  "mimeType": "audio/mpeg",
+  "currentStage": "fyrrum",
+  "hintLevel": 1,
+  "hintGiven": true
 }
 ```
 
 ---
 
-## Udvidelse til skattejagt-trin
+## Filstruktur (story-relevant)
 
-API-ruten er forberedt til et `stage`-parameter. Når du vil tilføje trin:
-
-1. Tilføj `stage` til `FormData` i `AlmaChat.tsx`
-2. Brug `stage` i API-ruten til at justere Almas systemprompt eller hints
-
-```typescript
-// Eksempel på stage-baseret systemprompt
-const STAGE_HINTS: Record<Stage, string> = {
-  intro: '',
-  fyrrum: 'Du ved, at børnene er tæt på fyrrummet. Giv hint om varme og rør.',
-  // ...
-};
+```
+lib/
+  stages.ts              ← al story-data (admin-ready)
+  build-system-prompt.ts ← dynamisk prompt
+  push-events.ts         ← fremtidige afbrydelser
+  session.ts             ← localStorage helpers
+app/
+  s/[stage]/page.tsx     ← QR-ready routes
+  api/talk/route.ts      ← tale-API med stage-kontekst
+  api/debug/prompt/      ← dev-only prompt preview
+components/
+  AlmaChat.tsx           ← UI + session + hints
+  SignalLost.tsx
+  DebugPanel.tsx         ← kun i development
 ```
 
 ---
@@ -220,10 +331,9 @@ const STAGE_HINTS: Record<Stage, string> = {
 
 ---
 
-## Kendte begrænsninger (v1)
+## Kendte begrænsninger
 
-- Ingen persistens — samtalen nulstilles ved reload
+- Session gemmes kun i browserens localStorage (ryddes ved clear data)
 - Ingen login eller adgangskontrol
-- Ingen QR-flow
-- Konversationshistorik er kun i-memory i browseren (max 6 beskeder sendes til API)
+- Push events er kun datastruktur — ikke aktiveret endnu
 - Lydoptagelse kræver HTTPS i produktion (håndteres af Nginx Proxy Manager)

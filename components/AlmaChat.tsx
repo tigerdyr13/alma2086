@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import DebugPanel from '@/components/DebugPanel';
+import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
+import type { StageDefinition } from '@/lib/stages';
 
-// ── Typer ──────────────────────────────────────────────────────────────
-
-type Message = {
-  role: 'user' | 'alma';
-  text: string;
-  /** Sættes når browser blokerer autoplay – tryk for at afspille */
+type Message = ChatMessage & {
   audioSrc?: string;
 };
 
@@ -24,10 +22,16 @@ interface TalkApiResponse {
   speechText?: string;
   audioBase64: string;
   mimeType: string;
+  currentStage?: string;
+  hintLevel?: number;
+  hintGiven?: boolean;
+  systemPromptPreview?: string;
   error?: string;
 }
 
-// ── Statustekster ──────────────────────────────────────────────────────
+interface AlmaChatProps {
+  stage: StageDefinition;
+}
 
 const STATUS_LABELS: Record<Status, string> = {
   idle: 'Tryk og hold for at tale med Alma',
@@ -47,7 +51,8 @@ const BUTTON_ICONS: Record<Status, string> = {
   error: '⚠',
 };
 
-// ── Hjælpefunktioner ───────────────────────────────────────────────────
+const SILENT_WAV =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
 function getBestMimeType(): string {
   const candidates = [
@@ -64,23 +69,20 @@ function getBestMimeType(): string {
 }
 
 function toApiHistory(messages: Message[]): ApiHistory[] {
-  return messages.slice(-6).map((m) => ({
+  return messages.slice(-12).map((m) => ({
     role: m.role === 'alma' ? 'assistant' : 'user',
     content: m.text,
   }));
 }
 
-// Minimal lydløs WAV – bruges til at låse op for afspilning under brugerens tryk
-const SILENT_WAV =
-  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-
-// ── Komponent ──────────────────────────────────────────────────────────
-
-export default function AlmaChat() {
+export default function AlmaChat({ stage }: AlmaChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hintLevel, setHintLevel] = useState(0);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
   const [isHolding, setIsHolding] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [lastPromptPreview, setLastPromptPreview] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -89,11 +91,11 @@ export default function AlmaChat() {
   const unlockRef = useRef<HTMLAudioElement | null>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
+  const hintLevelRef = useRef(hintLevel);
+  const visitedAtRef = useRef<string>(new Date().toISOString());
 
   const getPlaybackElement = useCallback(() => {
-    if (!playbackRef.current) {
-      playbackRef.current = new Audio();
-    }
+    if (!playbackRef.current) playbackRef.current = new Audio();
     return playbackRef.current;
   }, []);
 
@@ -102,15 +104,12 @@ export default function AlmaChat() {
     audio.onerror = null;
   }, []);
 
-  // Kør synkront ved pointer down – separat element, ingen fejl-handlers
   const unlockAudio = useCallback(() => {
     const playback = getPlaybackElement();
     playback.pause();
     clearPlaybackHandlers(playback);
 
-    if (!unlockRef.current) {
-      unlockRef.current = new Audio();
-    }
+    if (!unlockRef.current) unlockRef.current = new Audio();
     const unlock = unlockRef.current;
     unlock.onerror = null;
     unlock.onended = null;
@@ -166,7 +165,6 @@ export default function AlmaChat() {
         }
       } catch {
         setStatus('idle');
-        if (messageIndex !== undefined) return false;
         return false;
       }
       return true;
@@ -174,19 +172,38 @@ export default function AlmaChat() {
     [getPlaybackElement, clearPlaybackHandlers],
   );
 
-  // Hold messagesRef synkroniseret for stabil brug i callbacks
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Auto-scroll til bunden ved nye beskeder
+  useEffect(() => {
+    hintLevelRef.current = hintLevel;
+  }, [hintLevel]);
+
+  useEffect(() => {
+    const session = loadStageSession(stage.id);
+    setMessages(session.messages);
+    setHintLevel(session.hintLevel);
+    visitedAtRef.current = session.visitedAt;
+    setSessionLoaded(true);
+  }, [stage.id]);
+
+  useEffect(() => {
+    if (!sessionLoaded) return;
+    saveStageSession(stage.id, {
+      messages: messages.map(({ role, text }) => ({ role, text })),
+      hintLevel,
+      visitedAt: visitedAtRef.current,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [messages, hintLevel, stage.id, sessionLoaded]);
+
   useEffect(() => {
     if (chatLogRef.current) {
       chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Stop evt. igangværende lyd ved unmount
   useEffect(() => {
     return () => {
       playbackRef.current?.pause();
@@ -194,8 +211,6 @@ export default function AlmaChat() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
-
-  // ── Start optagelse ──────────────────────────────────────────────────
 
   const startRecording = useCallback(async () => {
     setError(null);
@@ -208,7 +223,6 @@ export default function AlmaChat() {
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       audioChunksRef.current = [];
-
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
@@ -228,8 +242,6 @@ export default function AlmaChat() {
     }
   }, []);
 
-  // ── Stop optagelse og send til API ───────────────────────────────────
-
   const stopAndSend = useCallback(async () => {
     if (!isHolding) return;
     setIsHolding(false);
@@ -239,7 +251,6 @@ export default function AlmaChat() {
 
     setStatus('connecting');
 
-    // Vent på at MediaRecorder er stoppet og alle chunks er samlet
     await new Promise<void>((resolve) => {
       recorder.onstop = () => resolve();
       recorder.stop();
@@ -259,6 +270,8 @@ export default function AlmaChat() {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.webm');
     formData.append('history', JSON.stringify(toApiHistory(messagesRef.current)));
+    formData.append('currentStage', stage.id);
+    formData.append('hintLevel', String(hintLevelRef.current));
 
     try {
       setStatus('thinking');
@@ -268,6 +281,14 @@ export default function AlmaChat() {
 
       if (!res.ok || data.error) {
         throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      if (data.systemPromptPreview) {
+        setLastPromptPreview(data.systemPromptPreview);
+      }
+
+      if (typeof data.hintLevel === 'number') {
+        setHintLevel(data.hintLevel);
       }
 
       const { transcript, displayText, audioBase64, mimeType: audioMime } = data;
@@ -284,18 +305,14 @@ export default function AlmaChat() {
       });
 
       const played = await playAlmaAudio(audioSrc, almaMessageIndex);
-      if (!played) {
-        setStatus('idle');
-      }
+      if (!played) setStatus('idle');
     } catch (err) {
       console.error('[AlmaChat] API error:', err);
       const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
       setError(msg);
       setStatus('error');
     }
-  }, [isHolding]);
-
-  // ── Pointer-events (fungerer på både touch og mus) ───────────────────
+  }, [isHolding, stage.id, playAlmaAudio]);
 
   const handlePlayAlmaMessage = useCallback(
     (audioSrc: string, index: number) => {
@@ -329,26 +346,37 @@ export default function AlmaChat() {
 
   const isDisabled = status === 'connecting' || status === 'thinking' || status === 'speaking';
   const buttonLabel = isHolding ? 'SLIP FOR AT SENDE' : 'HOLD FOR AT TALE';
-
-  // ── Render ───────────────────────────────────────────────────────────
+  const stability = stage.connectionStability;
 
   return (
     <div className="alma-container">
-      {/* ── Header ── */}
       <header className="alma-header">
         <div className="alma-signal">
           <span className="alma-signal-dot" />
           Tidsforbindelse 2026 → 2086
         </div>
         <h1 className="alma-title">ALMA</h1>
-        <p className="alma-subtitle">Fra år 2086</p>
+        <p className="alma-subtitle">{stage.title}</p>
+
+        <div className="stage-hud">
+          <div className="stage-hud-row">
+            <span className="stage-hud-label">SIGNAL LOCATION</span>
+            <span className="stage-hud-value">{stage.signalLocation}</span>
+          </div>
+          <div className="stage-hud-row">
+            <span className="stage-hud-label">CONNECTION STABLE</span>
+            <span className="stage-hud-value stage-hud-value--stability">{stability}%</span>
+          </div>
+          <div className="stage-stability-bar" aria-hidden="true">
+            <div className="stage-stability-fill" style={{ width: `${stability}%` }} />
+          </div>
+        </div>
       </header>
 
-      {/* ── Chatlog ── */}
       <div className="chat-log" ref={chatLogRef} role="log" aria-live="polite">
         {messages.length === 0 && (
           <div className="chat-empty">
-            <p>Forbindelsen er klar.</p>
+            <p>{stage.description}</p>
             <p>Hold knappen nede og tal med Alma.</p>
           </div>
         )}
@@ -375,7 +403,6 @@ export default function AlmaChat() {
         ))}
       </div>
 
-      {/* ── Kontrolpanel ── */}
       <div className="controls">
         {error && (
           <div className="error-banner" role="alert" onClick={dismissError}>
@@ -410,6 +437,13 @@ export default function AlmaChat() {
           <span className="talk-button-label">{buttonLabel}</span>
         </button>
       </div>
+
+      <DebugPanel
+        stage={stage}
+        hintLevel={hintLevel}
+        messageCount={messages.length}
+        systemPromptPreview={lastPromptPreview}
+      />
     </div>
   );
 }

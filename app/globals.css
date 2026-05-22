@@ -444,3 +444,185 @@ body::before {
 .talk-button--active .talk-button-label {
   color: var(--color-red);
 }
+
+/* ── Stage HUD ────────────────────────────────────── */
+.stage-hud {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(0, 229, 255, 0.03);
+  text-align: left;
+}
+
+.stage-hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stage-hud-label {
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+.stage-hud-value {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+}
+
+.stage-hud-value--stability {
+  color: var(--color-yellow);
+}
+
+.stage-stability-bar {
+  height: 3px;
+  background: rgba(0, 229, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.stage-stability-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-red), var(--color-yellow), var(--color-green));
+  box-shadow: 0 0 8px var(--color-cyan-glow);
+  transition: width 0.6s ease;
+}
+
+/* ── Signal lost ──────────────────────────────────── */
+.signal-lost {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+
+.signal-lost-inner {
+  max-width: 420px;
+  text-align: center;
+  border: 1px solid rgba(255, 59, 92, 0.4);
+  padding: 32px 24px;
+  border-radius: var(--radius);
+  background: rgba(255, 59, 92, 0.05);
+  animation: fade-in 0.8s ease;
+}
+
+.signal-lost-icon {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--color-red);
+  margin-bottom: 16px;
+}
+
+.signal-lost-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  color: var(--color-red);
+  margin-bottom: 12px;
+}
+
+.signal-lost-text {
+  color: var(--color-text);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.signal-lost-code {
+  color: var(--color-red);
+  font-family: var(--font-mono);
+}
+
+.signal-lost-sub {
+  color: var(--color-text-dim);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.signal-lost-link {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+}
+
+.signal-lost-link:hover {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 16px var(--color-cyan-glow);
+}
+
+/* ── Debug panel (dev only) ───────────────────────── */
+.debug-panel {
+  position: fixed;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  max-width: 640px;
+  margin: 0 auto;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.debug-panel-toggle {
+  pointer-events: auto;
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  background: rgba(255, 229, 102, 0.15);
+  border: 1px solid rgba(255, 229, 102, 0.4);
+  color: var(--color-yellow);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.debug-panel-body {
+  pointer-events: auto;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: rgba(10, 20, 40, 0.95);
+  border: 1px solid rgba(255, 229, 102, 0.3);
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: var(--color-text-dim);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.debug-panel-body p {
+  margin-bottom: 4px;
+}
+
+.debug-prompt {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--color-text);
+}
+

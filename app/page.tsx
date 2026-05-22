@@ -1,5 +1,5 @@
-import AlmaChat from '@/components/AlmaChat';
+import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-  return <AlmaChat />;
+  redirect('/s/intro');
 }
