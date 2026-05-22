@@ -20,7 +20,8 @@ type Status = 'idle' | 'recording' | 'connecting' | 'thinking' | 'speaking' | 'e
 
 interface TalkApiResponse {
   transcript: string;
-  replyText: string;
+  displayText: string;
+  speechText?: string;
   audioBase64: string;
   mimeType: string;
   error?: string;
@@ -269,7 +270,7 @@ export default function AlmaChat() {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      const { transcript, replyText, audioBase64, mimeType: audioMime } = data;
+      const { transcript, displayText, audioBase64, mimeType: audioMime } = data;
       const audioSrc = `data:${audioMime};base64,${audioBase64}`;
 
       let almaMessageIndex = 0;
@@ -278,7 +279,7 @@ export default function AlmaChat() {
         return [
           ...prev,
           { role: 'user', text: transcript },
-          { role: 'alma', text: replyText, audioSrc },
+          { role: 'alma', text: displayText, audioSrc },
         ];
       });
 

@@ -162,8 +162,8 @@ Browser
        ├─ MediaRecorder (optager audio som WebM/Opus)
        └─ POST /api/talk  (multipart/form-data)
             ├─ audio → OpenAI Whisper → transcript
-            ├─ transcript + history → OpenAI Chat → replyText
-            └─ replyText → ElevenLabs TTS → audioBase64
+            ├─ transcript + history → OpenAI Chat → { displayText, speechText }
+            └─ speechText → ElevenLabs eleven_v3 → audioBase64
                  └─ Browser afspiller base64-lyd
 ```
 
@@ -181,7 +181,8 @@ Browser
 ```json
 {
   "transcript": "Hvad hedder du?",
-  "replyText": "Jeg hedder Alma! Signalet hakker lidt – kan du høre mig?",
+  "displayText": "Shh... signalet hakker. Hvem er I?",
+  "speechText": "[whispers] Shh... [hesitates] signalet hakker. [nervous] Hvem er I?",
   "audioBase64": "...",
   "mimeType": "audio/mpeg"
 }
