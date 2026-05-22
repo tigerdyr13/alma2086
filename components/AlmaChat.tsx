@@ -84,45 +84,65 @@ export default function AlmaChat() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackRef = useRef<HTMLAudioElement | null>(null);
+  const unlockRef = useRef<HTMLAudioElement | null>(null);
   const chatLogRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
 
-  const getAudioElement = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
+  const getPlaybackElement = useCallback(() => {
+    if (!playbackRef.current) {
+      playbackRef.current = new Audio();
     }
-    return audioRef.current;
+    return playbackRef.current;
   }, []);
 
-  // Kør synkront ved pointer down – beholdes i browserens "user gesture"-kæde
+  const clearPlaybackHandlers = useCallback((audio: HTMLAudioElement) => {
+    audio.onended = null;
+    audio.onerror = null;
+  }, []);
+
+  // Kør synkront ved pointer down – separat element, ingen fejl-handlers
   const unlockAudio = useCallback(() => {
-    const audio = getAudioElement();
-    audio.muted = true;
-    audio.src = SILENT_WAV;
-    audio
+    const playback = getPlaybackElement();
+    playback.pause();
+    clearPlaybackHandlers(playback);
+
+    if (!unlockRef.current) {
+      unlockRef.current = new Audio();
+    }
+    const unlock = unlockRef.current;
+    unlock.onerror = null;
+    unlock.onended = null;
+    unlock.pause();
+    unlock.muted = true;
+    unlock.src = SILENT_WAV;
+    unlock
       .play()
       .then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.muted = false;
-        audio.removeAttribute('src');
+        unlock.pause();
+        unlock.currentTime = 0;
+        unlock.muted = false;
+        unlock.removeAttribute('src');
       })
       .catch(() => {
-        audio.muted = false;
+        unlock.muted = false;
       });
-  }, [getAudioElement]);
+  }, [getPlaybackElement, clearPlaybackHandlers]);
 
   const playAlmaAudio = useCallback(
     async (audioSrc: string, messageIndex?: number) => {
-      const audio = getAudioElement();
+      const audio = getPlaybackElement();
+      clearPlaybackHandlers(audio);
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
       audio.src = audioSrc;
-      audioRef.current = audio;
 
       setStatus('speaking');
       setError(null);
 
       audio.onended = () => {
+        clearPlaybackHandlers(audio);
         setStatus('idle');
         if (messageIndex !== undefined) {
           setMessages((prev) =>
@@ -131,6 +151,7 @@ export default function AlmaChat() {
         }
       };
       audio.onerror = () => {
+        clearPlaybackHandlers(audio);
         setError('Kunne ikke afspille Almas stemme.');
         setStatus('idle');
       };
@@ -149,7 +170,7 @@ export default function AlmaChat() {
       }
       return true;
     },
-    [getAudioElement],
+    [getPlaybackElement, clearPlaybackHandlers],
   );
 
   // Hold messagesRef synkroniseret for stabil brug i callbacks
@@ -167,7 +188,8 @@ export default function AlmaChat() {
   // Stop evt. igangværende lyd ved unmount
   useEffect(() => {
     return () => {
-      audioRef.current?.pause();
+      playbackRef.current?.pause();
+      unlockRef.current?.pause();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
