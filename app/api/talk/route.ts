@@ -6,7 +6,7 @@ import {
   shouldIncrementHintLevel,
 } from '@/lib/build-system-prompt';
 import { synthesizeAlmaSpeech } from '@/lib/elevenlabs';
-import { parseAlmaReply } from '@/lib/parse-alma-reply';
+import { parseAlmaReply, type AlmaReplyJson } from '@/lib/parse-alma-reply';
 import {
   getOpenAIErrorMessage,
   mimeToUploadFilename,
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     isStuckRequest: stuck,
   });
 
-  let almaReply: AlmaReply;
+  let almaReply: AlmaReplyJson;
   try {
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
