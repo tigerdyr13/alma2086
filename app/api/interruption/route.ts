@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { danishSpeechText } from '@/lib/da-speech';
 import { synthesizeAlmaSpeech } from '@/lib/elevenlabs';
 
 interface LineInput {
@@ -41,7 +42,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const segments: SegmentOutput[] = [];
     for (const line of lines) {
-      const { audioBase64, mimeType } = await synthesizeAlmaSpeech(line.speechText);
+      const speech = danishSpeechText(line.displayText, line.speechText);
+      const { audioBase64, mimeType } = await synthesizeAlmaSpeech(speech);
       segments.push({
         displayText: line.displayText,
         audioBase64,

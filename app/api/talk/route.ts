@@ -13,6 +13,8 @@ import {
   resolveAudioMime,
 } from '@/lib/audio-upload';
 import { getActiveHintCount, getStage, isValidStageId, type StageId } from '@/lib/stages';
+import type { SceneState } from '@/lib/scene-state';
+import { isSceneInteractive } from '@/lib/scene-state';
 
 interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -37,6 +39,21 @@ function getMissingEnvVars(): string[] {
   return required.filter((k) => !process.env[k]);
 }
 
+function parseSceneState(raw: string | null): SceneState {
+  if (
+    raw === 'search' ||
+    raw === 'briefing' ||
+    raw === 'arrival' ||
+    raw === 'reaction' ||
+    raw === 'transition' ||
+    raw === 'completed'
+  ) {
+    return raw;
+  }
+  if (raw === 'discovery') return 'search';
+  return 'search';
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const missing = getMissingEnvVars();
   if (missing.length > 0) {
@@ -58,6 +75,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const historyRaw = formData.get('history') as string | null;
   const stageRaw = formData.get('currentStage') as string | null;
   const hintLevelRaw = formData.get('hintLevel') as string | null;
+  const sceneStateRaw = formData.get('sceneState') as string | null;
+  const clueFoundRaw = formData.get('clueFound') as string | null;
+  const searchUserMessagesRaw = formData.get('searchUserMessages') as string | null;
+  const briefingUserMessagesRaw = formData.get('briefingUserMessages') as string | null;
 
   if (!audioEntry) {
     return NextResponse.json({ error: 'Ingen lydfil modtaget' }, { status: 400 });
@@ -73,6 +94,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (hintLevelRaw !== null) {
     const parsed = parseInt(hintLevelRaw, 10);
     if (!Number.isNaN(parsed) && parsed >= 0) hintLevel = parsed;
+  }
+
+  const sceneState = parseSceneState(sceneStateRaw);
+  const clueFound = clueFoundRaw === 'true';
+
+  let searchUserMessages = 0;
+  if (searchUserMessagesRaw !== null) {
+    const parsed = parseInt(searchUserMessagesRaw, 10);
+    if (!Number.isNaN(parsed) && parsed >= 0) searchUserMessages = parsed;
+  }
+
+  let briefingUserMessages = 0;
+  if (briefingUserMessagesRaw !== null) {
+    const parsed = parseInt(briefingUserMessagesRaw, 10);
+    if (!Number.isNaN(parsed) && parsed >= 0) briefingUserMessages = parsed;
+  }
+
+  if (!isSceneInteractive(sceneState)) {
+    return NextResponse.json(
+      { error: 'Forbindelsen er ikke klar til samtale lige nu.' },
+      { status: 403 },
+    );
   }
 
   let history: HistoryMessage[] = [];
@@ -141,6 +184,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     stageId: currentStage,
     hintLevel,
     isStuckRequest: stuck,
+    sceneState,
+    clueFound,
+    searchUserMessages,
+    briefingUserMessages,
   });
 
   let almaReply: AlmaReplyJson;
@@ -172,7 +219,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const hintGiven = stuck;
-  const nextHintLevel = shouldIncrementHintLevel(stuck, hintLevel, getActiveHintCount(stage))
+  const nextHintLevel = shouldIncrementHintLevel(
+    stuck,
+    hintLevel,
+    getActiveHintCount(stage),
+    sceneState,
+    clueFound,
+  )
     ? hintLevel + 1
     : hintLevel;
 

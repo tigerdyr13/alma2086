@@ -1,3 +1,5 @@
+import { danishSpeechText } from './da-speech';
+
 export interface AlmaReplyJson {
   displayText: string;
   speechText: string;
@@ -24,14 +26,18 @@ export function parseAlmaReply(raw: string): AlmaReplyJson {
         : undefined;
 
     if (displayText && speechText) {
-      return { displayText, speechText, visionDescription };
+      return {
+        displayText,
+        speechText: danishSpeechText(displayText, speechText),
+        visionDescription,
+      };
     }
     if (displayText) {
-      return { displayText, speechText: displayText, visionDescription };
+      return { displayText, speechText: danishSpeechText(displayText), visionDescription };
     }
   } catch {
     // fallback
   }
 
-  return { displayText: trimmed, speechText: trimmed };
+  return { displayText: trimmed, speechText: danishSpeechText(trimmed) };
 }

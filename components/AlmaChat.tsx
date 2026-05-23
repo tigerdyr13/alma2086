@@ -5,10 +5,17 @@ import dynamic from 'next/dynamic';
 import ConnectionStability from '@/components/ConnectionStability';
 import DebugPanel from '@/components/DebugPanel';
 import ShowAlmaCamera from '@/components/ShowAlmaCamera';
+import AudioUnlockGate from '@/components/AudioUnlockGate';
+import ConnectionLost from '@/components/ConnectionLost';
+import SceneScriptOverlay from '@/components/SceneScriptOverlay';
+import SignalCollapse from '@/components/SignalCollapse';
 import StageTransition from '@/components/StageTransition';
 import TemporalInterruption from '@/components/TemporalInterruption';
+import { useSceneFlow } from '@/hooks/useSceneFlow';
 import { useTemporalInterruptions } from '@/hooks/useTemporalInterruptions';
+import type { SceneState } from '@/lib/scene-state';
 import { mimeToUploadFilename } from '@/lib/audio-upload';
+import type { QrScanMode } from '@/lib/qr-entry';
 import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
 import { canShowAlma } from '@/lib/show-alma-stages';
 import type { StageDefinition } from '@/lib/stages';
@@ -49,6 +56,8 @@ interface TalkApiResponse {
 
 interface AlmaChatProps {
   stage: StageDefinition;
+  /** Ved direkte åbning af /s/[stage]/fundet */
+  initialQrMode?: QrScanMode;
 }
 
 interface ShowAlmaApiResponse {
@@ -108,7 +117,7 @@ function toApiHistory(messages: Message[]): ApiHistory[] {
   }));
 }
 
-export default function AlmaChat({ stage }: AlmaChatProps) {
+export default function AlmaChat({ stage, initialQrMode }: AlmaChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [hintLevel, setHintLevel] = useState(0);
   const [status, setStatus] = useState<Status>('idle');
@@ -121,30 +130,13 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const [qrOpen, setQrOpen] = useState(false);
   const [showAlmaOpen, setShowAlmaOpen] = useState(false);
   const [transitionDone, setTransitionDone] = useState(false);
-
-  const isBusyBase =
-    status === 'connecting' ||
-    status === 'thinking' ||
-    status === 'speaking' ||
-    status === 'sending-image' ||
-    status === 'analyzing-image';
-
-  const {
-    activeInterruption,
-    isInterruptionActive,
-    dismissInterruption,
-    notifyActivity,
-    notifyAfterImage,
-    forceTrigger,
-    debugInterruptionState,
-  } = useTemporalInterruptions({
-    stageId: stage.id,
-    enabled: transitionDone && !isBusyBase && !qrOpen && !showAlmaOpen,
-    messageCount: messages.length,
-    hintLevel,
-  });
-
-  const isBusy = isBusyBase || isInterruptionActive;
+  const [sceneState, setSceneState] = useState<SceneState>('arrival');
+  const [hasArrived, setHasArrived] = useState(false);
+  const [clueFound, setClueFound] = useState(false);
+  const [searchUserMessages, setSearchUserMessages] = useState(0);
+  const [briefingUserMessages, setBriefingUserMessages] = useState(0);
+  const [briefingConfirmed, setBriefingConfirmed] = useState(false);
+  const [arrivalPlayed, setArrivalPlayed] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -155,6 +147,43 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const messagesRef = useRef<Message[]>(messages);
   const hintLevelRef = useRef(hintLevel);
   const visitedAtRef = useRef<string>(new Date().toISOString());
+  const searchUserMessagesRef = useRef(searchUserMessages);
+  const briefingUserMessagesRef = useRef(briefingUserMessages);
+  const sceneStateRef = useRef(sceneState);
+
+  const patchSession = useCallback(
+    (patch: {
+      sceneState?: SceneState;
+      hasArrived?: boolean;
+      clueFound?: boolean;
+      arrivalPlayed?: boolean;
+      searchUserMessages?: number;
+      briefingUserMessages?: number;
+      briefingConfirmed?: boolean;
+    }) => {
+      if (patch.sceneState !== undefined) setSceneState(patch.sceneState);
+      if (patch.hasArrived !== undefined) setHasArrived(patch.hasArrived);
+      if (patch.clueFound !== undefined) setClueFound(patch.clueFound);
+      if (patch.arrivalPlayed !== undefined) setArrivalPlayed(patch.arrivalPlayed);
+      if (patch.searchUserMessages !== undefined) {
+        setSearchUserMessages(patch.searchUserMessages);
+      }
+      if (patch.briefingUserMessages !== undefined) {
+        setBriefingUserMessages(patch.briefingUserMessages);
+      }
+      if (patch.briefingConfirmed !== undefined) {
+        setBriefingConfirmed(patch.briefingConfirmed);
+      }
+    },
+    [],
+  );
+
+  const appendAlmaScriptMessages = useCallback((lines: { displayText: string }[]) => {
+    setMessages((prev) => [
+      ...prev,
+      ...lines.map((l) => ({ role: 'alma' as const, text: l.displayText })),
+    ]);
+  }, []);
 
   const getPlaybackElement = useCallback(() => {
     if (!playbackRef.current) playbackRef.current = new Audio();
@@ -190,6 +219,65 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         unlock.muted = false;
       });
   }, [getPlaybackElement, clearPlaybackHandlers]);
+
+  const {
+    scriptLine,
+    showCollapse,
+    awaitingAudioUnlock,
+    unlockAndStartArrival,
+    canTalk,
+    isSceneBusy,
+    isSceneCompleted,
+    onSearchMessage,
+    onBriefingMessage,
+    awaitingEntrance,
+    finishCollapse,
+  } = useSceneFlow({
+    stage,
+    initialQrMode,
+    transitionDone,
+    sessionLoaded,
+    sceneState,
+    hasArrived,
+    clueFound,
+    arrivalPlayed,
+    briefingConfirmed,
+    onPatchSession: patchSession,
+    onAppendMessages: appendAlmaScriptMessages,
+    getAudioElement: getPlaybackElement,
+    unlockAudio,
+  });
+
+  const isBusyBase =
+    status === 'connecting' ||
+    status === 'thinking' ||
+    status === 'speaking' ||
+    status === 'sending-image' ||
+    status === 'analyzing-image';
+
+  const {
+    activeInterruption,
+    isInterruptionActive,
+    dismissInterruption,
+    notifyActivity,
+    notifyAfterImage,
+    forceTrigger,
+    debugInterruptionState,
+  } = useTemporalInterruptions({
+    stageId: stage.id,
+    enabled:
+      transitionDone &&
+      !isBusyBase &&
+      !qrOpen &&
+      !showAlmaOpen &&
+      !isSceneBusy &&
+      !isSceneCompleted &&
+      sceneState === 'search' || sceneState === 'briefing',
+    messageCount: messages.length,
+    hintLevel,
+  });
+
+  const isBusy = isBusyBase || isInterruptionActive || isSceneBusy;
 
   const playAlmaAudio = useCallback(
     async (audioSrc: string, messageIndex?: number) => {
@@ -243,9 +331,28 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   }, [hintLevel]);
 
   useEffect(() => {
+    searchUserMessagesRef.current = searchUserMessages;
+  }, [searchUserMessages]);
+
+  useEffect(() => {
+    briefingUserMessagesRef.current = briefingUserMessages;
+  }, [briefingUserMessages]);
+
+  useEffect(() => {
+    sceneStateRef.current = sceneState;
+  }, [sceneState]);
+
+  useEffect(() => {
     const session = loadStageSession(stage.id);
     setMessages(session.messages);
     setHintLevel(session.hintLevel);
+    setSceneState(session.sceneState);
+    setHasArrived(session.hasArrived);
+    setClueFound(session.clueFound);
+    setSearchUserMessages(session.searchUserMessages);
+    setBriefingUserMessages(session.briefingUserMessages);
+    setBriefingConfirmed(session.briefingConfirmed);
+    setArrivalPlayed(session.arrivalPlayed);
     visitedAtRef.current = session.visitedAt;
     setSessionLoaded(true);
   }, [stage.id]);
@@ -257,8 +364,27 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
       hintLevel,
       visitedAt: visitedAtRef.current,
       updatedAt: new Date().toISOString(),
+      sceneState,
+      hasArrived,
+      clueFound,
+      searchUserMessages,
+      briefingUserMessages,
+      briefingConfirmed,
+      arrivalPlayed,
     });
-  }, [messages, hintLevel, stage.id, sessionLoaded]);
+  }, [
+    messages,
+    hintLevel,
+    stage.id,
+    sessionLoaded,
+    sceneState,
+    hasArrived,
+    clueFound,
+    searchUserMessages,
+    briefingUserMessages,
+    briefingConfirmed,
+    arrivalPlayed,
+  ]);
 
   useEffect(() => {
     notifyActivity();
@@ -340,6 +466,10 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     formData.append('history', JSON.stringify(toApiHistory(messagesRef.current)));
     formData.append('currentStage', stage.id);
     formData.append('hintLevel', String(hintLevelRef.current));
+    formData.append('sceneState', sceneStateRef.current);
+    formData.append('clueFound', String(clueFound));
+    formData.append('searchUserMessages', String(searchUserMessagesRef.current));
+    formData.append('briefingUserMessages', String(briefingUserMessagesRef.current));
 
     try {
       setStatus('thinking');
@@ -374,13 +504,22 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
 
       const played = await playAlmaAudio(audioSrc, almaMessageIndex);
       if (!played) setStatus('idle');
+
+      const phase = sceneStateRef.current;
+      if (phase === 'search') {
+        const nextCount = searchUserMessagesRef.current + 1;
+        onSearchMessage(nextCount);
+      } else if (phase === 'briefing') {
+        const nextCount = briefingUserMessagesRef.current + 1;
+        onBriefingMessage(transcript, nextCount);
+      }
     } catch (err) {
       console.error('[AlmaChat] API error:', err);
       const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
       setError(msg);
       setStatus('error');
     }
-  }, [isHolding, stage.id, playAlmaAudio]);
+  }, [isHolding, stage.id, playAlmaAudio, clueFound, onSearchMessage, onBriefingMessage]);
 
   const handleShowAlmaSend = useCallback(
     async (imageBlob: Blob) => {
@@ -422,6 +561,11 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         const played = await playAlmaAudio(audioSrc, almaMessageIndex);
         if (!played) setStatus('idle');
         notifyAfterImage();
+
+        if (sceneStateRef.current === 'search') {
+          const nextCount = searchUserMessagesRef.current + 1;
+          onSearchMessage(nextCount);
+        }
       } catch (err) {
         console.error('[AlmaChat] Show Alma error:', err);
         const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
@@ -429,7 +573,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         setStatus('error');
       }
     },
-    [stage.id, playAlmaAudio, notifyAfterImage],
+    [stage.id, playAlmaAudio, notifyAfterImage, onSearchMessage],
   );
 
   const handleInterruptionComplete = useCallback(
@@ -453,11 +597,12 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       if (status !== 'idle' && status !== 'error') return;
+      if (!canTalk) return;
       unlockAudio();
       notifyActivity();
       startRecording();
     },
-    [status, startRecording, unlockAudio, notifyActivity],
+    [status, startRecording, unlockAudio, notifyActivity, canTalk],
   );
 
   const handlePointerUp = useCallback(
@@ -474,8 +619,29 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   }, []);
 
   const isDisabled = isBusy;
-  const talkDisabled = isBusy || status === 'recording';
-  const buttonLabel = isHolding ? 'SLIP FOR AT SENDE' : 'HOLD FOR AT TALE';
+  const talkDisabled = isBusy || status === 'recording' || !canTalk;
+  const buttonLabel = isHolding
+    ? 'SLIP FOR AT SENDE'
+    : !canTalk
+      ? isSceneCompleted
+        ? 'FORBINDELSEN LUKKET'
+        : 'ALMA FORBEREDER SCENEN…'
+      : 'HOLD FOR AT TALE';
+
+  const sceneStatusLabel = awaitingEntrance
+    ? 'Scan indgangs-QR ved døren for at genoprette forbindelsen'
+    : sceneState === 'arrival'
+      ? 'Genetablerer forbindelse…'
+      : sceneState === 'search'
+        ? 'Led i rummet – Alma giver kun hints'
+        : sceneState === 'reaction'
+          ? 'Alma reagerer på fundet…'
+          : sceneState === 'briefing'
+            ? 'Fortæl Alma hvor I tror næste spor er'
+            : sceneState === 'transition'
+              ? 'Signalet kollapser…'
+              : 'Forbindelsen lukket';
+
   return (
     <>
       {!transitionDone && (
@@ -487,6 +653,27 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
           onComplete={handleInterruptionComplete}
           onDismiss={dismissInterruption}
         />
+      )}
+      {showCollapse && (
+        <SignalCollapse
+          isFinale={stage.id === 'finale'}
+          onComplete={finishCollapse}
+        />
+      )}
+      <SceneScriptOverlay line={scriptLine} />
+      {awaitingAudioUnlock && (
+        <AudioUnlockGate onUnlock={unlockAndStartArrival} />
+      )}
+      {awaitingEntrance && !awaitingAudioUnlock && (
+        <div className="entrance-gate" role="status">
+          <p className="entrance-gate-title">INGEN FORBINDELSE VED DØREN</p>
+          <p className="entrance-gate-text">
+            Scan <strong>indgangs-QR</strong> ved døren til {stage.title} – så vender Alma tilbage.
+          </p>
+          <button type="button" className="action-btn action-btn--scan" onClick={() => setQrOpen(true)}>
+            📡 SCAN INGANGS-QR
+          </button>
+        </div>
       )}
     <div
       className={`alma-container${transitionDone ? ' alma-container--ready' : ' alma-container--hidden'}`}
@@ -510,10 +697,10 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
       </header>
 
       <div className="chat-log" ref={chatLogRef} role="log" aria-live="polite">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isSceneBusy && (
           <div className="chat-empty">
             <p>{stage.description}</p>
-            <p>Hold knappen nede og tal med Alma.</p>
+            <p>{sceneStatusLabel}</p>
           </div>
         )}
         {messages.map((msg, i) => (
@@ -539,6 +726,15 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         ))}
       </div>
 
+      {isSceneCompleted ? (
+        <ConnectionLost
+          nextStageHint={stage.scene.nextStageHint}
+          betweenStagesGuidance={stage.scene.betweenStagesGuidance}
+          nextStageLabel={stage.scene.nextStageLabel}
+          isFinale={stage.id === 'finale'}
+          onScanClick={() => setQrOpen(true)}
+        />
+      ) : (
       <div className="controls">
         {error && (
           <div className="error-banner" role="alert" onClick={dismissError}>
@@ -548,7 +744,9 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
 
         <div className="status-bar" aria-live="polite">
           <span className={`status-indicator status-indicator--${status}`} aria-hidden="true" />
-          <span className="status-text">{STATUS_LABELS[status]}</span>
+          <span className="status-text">
+            {status === 'idle' || status === 'error' ? sceneStatusLabel : STATUS_LABELS[status]}
+          </span>
         </div>
 
         <div className="action-row">
@@ -560,7 +758,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
           >
             📡 SCAN SIGNAL
           </button>
-          {canShowAlma(stage.id) && (
+          {canShowAlma(stage.id) && canTalk && sceneState === 'search' && (
             <button
               type="button"
               className="action-btn action-btn--show"
@@ -594,6 +792,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
           <span className="talk-button-label">{buttonLabel}</span>
         </button>
       </div>
+      )}
 
       {qrOpen && <QrScanner onClose={() => setQrOpen(false)} />}
       {showAlmaOpen && (
@@ -613,6 +812,11 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         rawVisionResponse={lastRawVisionResponse}
         interruptionDebug={debugInterruptionState}
         onForceInterruption={forceTrigger}
+        sceneState={sceneState}
+        hasArrived={hasArrived}
+        clueFound={clueFound}
+        searchUserMessages={searchUserMessages}
+        briefingUserMessages={briefingUserMessages}
       />
     </div>
     </>

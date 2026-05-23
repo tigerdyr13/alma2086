@@ -15,6 +15,11 @@ interface DebugPanelProps {
   rawVisionResponse?: string | null;
   interruptionDebug?: InterruptionDebugState;
   onForceInterruption?: (id: string) => void;
+  sceneState?: string;
+  hasArrived?: boolean;
+  clueFound?: boolean;
+  searchUserMessages?: number;
+  briefingUserMessages?: number;
 }
 
 export default function DebugPanel({
@@ -26,6 +31,11 @@ export default function DebugPanel({
   rawVisionResponse,
   interruptionDebug,
   onForceInterruption,
+  sceneState,
+  hasArrived,
+  clueFound,
+  searchUserMessages,
+  briefingUserMessages,
 }: DebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [fetchedPrompt, setFetchedPrompt] = useState<string | null>(null);
@@ -33,8 +43,15 @@ export default function DebugPanel({
   useEffect(() => {
     if (!open || systemPromptPreview) return;
 
-    const url = `/api/debug/prompt?stage=${stage.id}&hintLevel=${hintLevel}`;
-    fetch(url)
+    const params = new URLSearchParams({
+      stage: stage.id,
+      hintLevel: String(hintLevel),
+      sceneState: sceneState ?? 'search',
+      clueFound: clueFound ? '1' : '0',
+      searchUserMessages: String(searchUserMessages ?? 0),
+      briefingUserMessages: String(briefingUserMessages ?? 0),
+    });
+    fetch(`/api/debug/prompt?${params}`)
       .then((r) => r.json())
       .then((data) => {
         if (typeof data.systemPrompt === 'string') {
@@ -42,7 +59,16 @@ export default function DebugPanel({
         }
       })
       .catch(() => {});
-  }, [open, stage.id, hintLevel, systemPromptPreview]);
+  }, [
+    open,
+    stage.id,
+    hintLevel,
+    systemPromptPreview,
+    sceneState,
+    clueFound,
+    searchUserMessages,
+    briefingUserMessages,
+  ]);
 
   const prompt = systemPromptPreview ?? fetchedPrompt;
   const stageInterruptions = getInterruptionsForStage(stage.id);
@@ -70,6 +96,19 @@ export default function DebugPanel({
           <p>
             <strong>Beskeder:</strong> {messageCount}
           </p>
+          {sceneState !== undefined && (
+            <p>
+              <strong>Scene:</strong> {sceneState}
+              {hasArrived ? ' · ankommet' : ''}
+              {clueFound ? ' · spor-QR' : ''}
+              {searchUserMessages !== undefined
+                ? ` · search ${searchUserMessages}/${stage.scene.minSearchExchanges}`
+                : ''}
+              {briefingUserMessages !== undefined
+                ? ` · briefing ${briefingUserMessages}/${stage.scene.minBriefingExchanges}`
+                : ''}
+            </p>
+          )}
           <p>
             <strong>Forbidden:</strong> {stage.forbiddenTopics.join(', ') || '—'}
           </p>

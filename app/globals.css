@@ -1417,3 +1417,280 @@ body::before {
   96% { opacity: 1; }
 }
 
+/* ── Scene script overlay ─────────────────────────── */
+.scene-script-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 20px max(100px, calc(env(safe-area-inset-bottom) + 80px));
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+.scene-script-overlay-inner {
+  text-align: center;
+  max-width: 420px;
+}
+
+.scene-script-overlay-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--color-cyan-dim);
+  margin-bottom: 10px;
+}
+
+.scene-script-overlay-line {
+  font-family: var(--font-mono);
+  font-size: clamp(16px, 4.5vw, 22px);
+  font-style: italic;
+  color: var(--color-text);
+  line-height: 1.5;
+  animation: transition-text-in 0.35s ease;
+}
+
+/* ── Signal collapse ─────────────────────────────── */
+.signal-collapse {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+
+.signal-collapse-noise {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.25;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: transition-noise 0.06s steps(4) infinite;
+  pointer-events: none;
+}
+
+.signal-collapse-inner {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px;
+}
+
+.signal-collapse-label {
+  font-family: var(--font-display);
+  font-size: clamp(14px, 4vw, 20px);
+  letter-spacing: 0.25em;
+  color: var(--color-red);
+  text-transform: uppercase;
+}
+
+.signal-collapse-label--lost {
+  font-size: clamp(18px, 5vw, 28px);
+  color: var(--color-red);
+  text-shadow: 0 0 24px var(--color-red-glow);
+}
+
+.signal-collapse-sub {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--color-text-dim);
+}
+
+.signal-collapse-flicker {
+  animation: temporal-text-flicker 1.2s ease-in-out infinite;
+}
+
+/* ── Connection lost (scene complete) ──────────────── */
+.connection-lost {
+  flex-shrink: 0;
+  padding: 20px;
+  border-top: 1px solid rgba(255, 59, 92, 0.35);
+  background: rgba(255, 59, 92, 0.06);
+  text-align: center;
+}
+
+.connection-lost-inner {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.connection-lost-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--color-red);
+  margin-bottom: 10px;
+}
+
+.connection-lost-title {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 4.5vw, 22px);
+  letter-spacing: 0.12em;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.connection-lost-reconnect {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.connection-lost-next {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-cyan-dim);
+  margin-bottom: 12px;
+}
+
+.connection-lost-next span {
+  color: var(--color-cyan);
+}
+
+.connection-lost-guidance {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.65;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-left: 2px solid var(--color-cyan-dim);
+  background: rgba(0, 229, 255, 0.05);
+  text-align: left;
+}
+
+.connection-lost-hint {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-text-dim);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.connection-lost-finale {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--color-green);
+  margin-bottom: 8px;
+}
+
+.connection-lost-scan {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-cyan);
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  width: 100%;
+  max-width: 320px;
+  cursor: pointer;
+}
+
+.connection-lost-scan:hover {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 16px var(--color-cyan-glow);
+}
+
+/* ── Audio unlock gate (før scene-lyd) ───────────── */
+.audio-unlock-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  padding: 24px;
+}
+
+.audio-unlock-gate-inner {
+  max-width: 360px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 28px 22px;
+  background: var(--color-bg-panel);
+}
+
+.audio-unlock-gate-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--color-cyan-dim);
+  margin-bottom: 12px;
+}
+
+.audio-unlock-gate-title {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 4.5vw, 20px);
+  letter-spacing: 0.1em;
+  color: var(--color-cyan);
+  margin-bottom: 10px;
+}
+
+.audio-unlock-gate-sub {
+  font-size: 13px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.audio-unlock-gate-btn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--color-bg);
+  background: var(--color-cyan);
+  border: none;
+  border-radius: var(--radius);
+  padding: 14px 24px;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 0 20px var(--color-cyan-glow);
+}
+
+.audio-unlock-gate-btn:hover {
+  filter: brightness(1.08);
+}
+
+/* ── Indgangs-QR gate ───────────────────────────── */
+.entrance-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1850;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 24px;
+  text-align: center;
+}
+
+.entrance-gate-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--color-cyan);
+}
+
+.entrance-gate-text {
+  max-width: 320px;
+  font-size: 14px;
+  color: var(--color-text-dim);
+  line-height: 1.5;
+}
+

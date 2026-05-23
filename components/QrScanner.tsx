@@ -3,7 +3,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Html5Qrcode } from 'html5-qrcode';
 import { markPendingTransitionAudio } from '@/lib/stage-transition';
-import { playSignalAcquiredSound, resolveQrToStagePath, vibrateOnScan } from '@/lib/qr-utils';
+import { markQrStageEntry } from '@/lib/qr-entry';
+import {
+  playSignalAcquiredSound,
+  qrDestinationToPath,
+  resolveQrDestination,
+  vibrateOnScan,
+} from '@/lib/qr-utils';
 
 interface QrScannerProps {
   onClose: () => void;
@@ -59,14 +65,16 @@ export default function QrScanner({ onClose }: QrScannerProps) {
           (decoded) => {
             try {
               if (handledRef.current) return;
-              const path = resolveQrToStagePath(decoded);
-              if (!path) return;
+              const dest = resolveQrDestination(decoded);
+              if (!dest) return;
 
               handledRef.current = true;
               vibrateOnScan();
               playSignalAcquiredSound();
               markPendingTransitionAudio();
+              markQrStageEntry(dest.stageId, dest.mode);
 
+              const path = qrDestinationToPath(dest);
               void stopScanner(scanner).finally(() => {
                 window.location.assign(path);
               });
@@ -123,7 +131,9 @@ export default function QrScanner({ onClose }: QrScannerProps) {
           <p className="scanner-error">{error}</p>
         ) : (
           <p className="scanner-hint">
-            {scanning ? 'Ret kameraet mod QR-koden' : 'Starter kamera…'}
+            {scanning
+              ? 'Indgangs-QR ved døren · spor-QR inde i rummet (/fundet)'
+              : 'Starter kamera…'}
           </p>
         )}
       </div>
