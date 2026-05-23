@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import ConnectionStability from '@/components/ConnectionStability';
 import DebugPanel from '@/components/DebugPanel';
 import ShowAlmaCamera from '@/components/ShowAlmaCamera';
+import StageTransition from '@/components/StageTransition';
 import { mimeToUploadFilename } from '@/lib/audio-upload';
 import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
 import { canShowAlma } from '@/lib/show-alma-stages';
@@ -117,6 +118,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const [lastRawVisionResponse, setLastRawVisionResponse] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [showAlmaOpen, setShowAlmaOpen] = useState(false);
+  const [transitionDone, setTransitionDone] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -439,7 +441,14 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const talkDisabled = isBusy || status === 'recording';
   const buttonLabel = isHolding ? 'SLIP FOR AT SENDE' : 'HOLD FOR AT TALE';
   return (
-    <div className="alma-container">
+    <>
+      {!transitionDone && (
+        <StageTransition stage={stage} onComplete={() => setTransitionDone(true)} />
+      )}
+    <div
+      className={`alma-container${transitionDone ? ' alma-container--ready' : ' alma-container--hidden'}`}
+      aria-hidden={!transitionDone}
+    >
       <header className="alma-header">
         <div className="alma-signal">
           <span className="alma-signal-dot" />
@@ -561,5 +570,6 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         rawVisionResponse={lastRawVisionResponse}
       />
     </div>
+    </>
   );
 }

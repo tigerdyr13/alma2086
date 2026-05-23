@@ -70,6 +70,28 @@ body::before {
   max-width: 640px;
   margin: 0 auto;
   padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+  transition: opacity 0.45s ease;
+}
+
+.alma-container--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.alma-container--ready {
+  opacity: 1;
+  animation: alma-reveal 0.5s ease;
+}
+
+@keyframes alma-reveal {
+  from {
+    opacity: 0;
+    filter: brightness(0.6);
+  }
+  to {
+    opacity: 1;
+    filter: brightness(1);
+  }
 }
 
 /* ── Header ───────────────────────────────────────── */
@@ -1037,5 +1059,213 @@ body::before {
 @keyframes pulse-red {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.75; }
+}
+
+/* ── Stage transition (cinematic entry) ───────────── */
+.stage-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  cursor: pointer;
+  overflow: hidden;
+  animation: stage-transition-in 0.35s ease;
+}
+
+.stage-transition--exit {
+  animation: stage-transition-out 0.35s ease forwards;
+}
+
+.stage-transition-noise {
+  position: absolute;
+  inset: -20%;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: transition-noise 0.12s steps(4) infinite;
+  pointer-events: none;
+}
+
+.stage-transition-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.25) 2px,
+    rgba(0, 0, 0, 0.25) 4px
+  );
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.stage-transition-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
+  pointer-events: none;
+}
+
+.stage-transition-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px;
+  max-width: 90vw;
+}
+
+.stage-transition-line {
+  font-family: var(--font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.stage-transition-line--primary {
+  font-size: clamp(14px, 4vw, 18px);
+  color: var(--color-text);
+}
+
+.stage-transition-line--secondary {
+  font-size: clamp(11px, 3vw, 14px);
+  color: var(--color-text-dim);
+}
+
+.stage-transition-dots {
+  display: inline-block;
+  animation: transition-dots 1s steps(3) infinite;
+}
+
+.stage-transition-headline {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 9vw, 48px);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--color-cyan);
+  text-shadow: 0 0 24px var(--color-cyan-glow);
+  margin-bottom: 16px;
+  line-height: 1.1;
+}
+
+.stage-transition-status {
+  font-family: var(--font-display);
+  font-size: clamp(10px, 2.8vw, 13px);
+  letter-spacing: 0.16em;
+  color: var(--color-yellow);
+  margin-bottom: 8px;
+}
+
+.stage-transition-subline {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 3vw, 13px);
+  color: var(--color-text-dim);
+  letter-spacing: 0.08em;
+}
+
+.stage-transition-established {
+  margin-top: 28px;
+  font-family: var(--font-display);
+  font-size: clamp(11px, 3vw, 14px);
+  letter-spacing: 0.22em;
+  color: var(--color-green);
+  text-shadow: 0 0 12px rgba(0, 255, 136, 0.35);
+}
+
+.stage-transition-stage-block {
+  animation: transition-stage-pulse 2s ease-in-out infinite;
+}
+
+.stage-transition-skip {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(106, 143, 168, 0.6);
+  text-transform: uppercase;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.stage-transition-symbol {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 120px;
+  color: rgba(0, 229, 255, 0.03);
+  pointer-events: none;
+  animation: transition-symbol-flicker 3s ease-in-out infinite;
+}
+
+.stage-transition-fade-in {
+  animation: transition-text-in 0.4s ease forwards;
+}
+
+.stage-transition--glitch .stage-transition-content {
+  animation: transition-glitch 0.18s steps(2);
+}
+
+@keyframes stage-transition-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes stage-transition-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes transition-noise {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2%, 1%); }
+  50% { transform: translate(1%, -2%); }
+  75% { transform: translate(-1%, 2%); }
+  100% { transform: translate(2%, -1%); }
+}
+
+@keyframes transition-dots {
+  0% { opacity: 0.3; }
+  33% { opacity: 0.7; }
+  66% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+@keyframes transition-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes transition-stage-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.92; }
+}
+
+@keyframes transition-glitch {
+  0% { transform: translate(0); filter: none; }
+  20% { transform: translate(-3px, 1px); filter: hue-rotate(20deg); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 2px); filter: brightness(1.2); }
+  80% { transform: translate(1px, -2px); }
+  100% { transform: translate(0); filter: none; }
+}
+
+@keyframes transition-symbol-flicker {
+  0%, 90%, 100% { opacity: 0.03; }
+  92% { opacity: 0.08; }
+  94% { opacity: 0.02; }
+  96% { opacity: 0.06; }
 }
 

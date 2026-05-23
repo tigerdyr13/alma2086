@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Html5Qrcode } from 'html5-qrcode';
+import { markPendingTransitionAudio } from '@/lib/stage-transition';
 import { playSignalAcquiredSound, resolveQrToStagePath, vibrateOnScan } from '@/lib/qr-utils';
 
 interface QrScannerProps {
@@ -64,6 +65,7 @@ export default function QrScanner({ onClose }: QrScannerProps) {
               handledRef.current = true;
               vibrateOnScan();
               playSignalAcquiredSound();
+              markPendingTransitionAudio();
 
               void stopScanner(scanner).finally(() => {
                 window.location.assign(path);

@@ -26,6 +26,12 @@ export interface StageDefinition {
   forbiddenTopics: readonly string[];
   /** Simuleret forbindelsesstyrke 0–100 */
   connectionStability: number;
+  /** Stort headline-ord under cinematic overgang */
+  transitionHeadline: string;
+  /** Primær statuslinje under overgang (fx ARCHIVE MATCH FOUND) */
+  transitionStatus: string;
+  /** Sekundær linje (fx signalstyrke) – valgfri */
+  transitionSubline?: string;
 }
 
 export const stages: Record<StageId, StageDefinition> = {
@@ -52,6 +58,9 @@ Du er overrasket og lidt bange over at forbindelsen virker.`,
     ],
     forbiddenTopics: ['loftet', 'finalen', 'hvad der er i kufferten'],
     connectionStability: 28,
+    transitionHeadline: 'UNKNOWN SIGNAL',
+    transitionStatus: 'INCOMING SIGNAL',
+    transitionSubline: 'SOURCE UNKNOWN',
   },
 
   fyrrum: {
@@ -77,6 +86,9 @@ Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
     ],
     forbiddenTopics: ['loftet', 'Hesteren', 'finalen'],
     connectionStability: 62,
+    transitionHeadline: 'FYRRUMMET',
+    transitionStatus: 'SIGNAL ANCHOR DETECTED',
+    transitionSubline: 'SIGNAL STRENGTH: 62%',
   },
 
   keramik: {
@@ -102,6 +114,9 @@ Du må ikke forklare hvorfor Esther er vigtig, eller hvad der er i kufferten.`,
     ],
     forbiddenTopics: ['hvad der er i kufferten', 'hvorfor Esther er vigtig'],
     connectionStability: 71,
+    transitionHeadline: 'KERAMIKRUMMET',
+    transitionStatus: 'ARCHIVE FRAGMENTS RECOVERED',
+    transitionSubline: 'ARCHIVE MATCH FOUND',
   },
 
   ude: {
@@ -127,6 +142,9 @@ Du må ikke afsløre hvad der præcist sker til sidst.`,
     ],
     forbiddenTopics: ['hvad der præcist sker til sidst'],
     connectionStability: 49,
+    transitionHeadline: 'HESTEREN',
+    transitionStatus: 'WARNING: DATA CORRUPTION DETECTED',
+    transitionSubline: 'UNSTABLE CONNECTION',
   },
 
   loft: {
@@ -153,6 +171,9 @@ På denne post må du guide dem tæt på kufferten uden at virke allvidende.`,
     ],
     forbiddenTopics: [],
     connectionStability: 18,
+    transitionHeadline: 'LOFTET',
+    transitionStatus: 'TEMPORAL LINK CRITICAL',
+    transitionSubline: 'FINAL SIGNAL DETECTED',
   },
 
   finale: {
@@ -174,6 +195,9 @@ Ingen flere gåder, ingen flere koder – kun afslutning og varme ord.`,
     hints: [],
     forbiddenTopics: [],
     connectionStability: 95,
+    transitionHeadline: 'FORBINDELSEN',
+    transitionStatus: 'CONNECTION STABLE',
+    transitionSubline: 'TEMPORAL LINK SECURED',
   },
 };
 
