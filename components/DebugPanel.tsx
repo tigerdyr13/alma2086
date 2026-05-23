@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getInterruptionsForStage } from '@/lib/interruptions';
+import type { InterruptionDebugState } from '@/hooks/useTemporalInterruptions';
 import type { StageDefinition } from '@/lib/stages';
 import { getActiveHintCount } from '@/lib/stages';
 
@@ -11,6 +13,8 @@ interface DebugPanelProps {
   systemPromptPreview?: string | null;
   visionDescription?: string | null;
   rawVisionResponse?: string | null;
+  interruptionDebug?: InterruptionDebugState;
+  onForceInterruption?: (id: string) => void;
 }
 
 export default function DebugPanel({
@@ -20,6 +24,8 @@ export default function DebugPanel({
   systemPromptPreview,
   visionDescription,
   rawVisionResponse,
+  interruptionDebug,
+  onForceInterruption,
 }: DebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [fetchedPrompt, setFetchedPrompt] = useState<string | null>(null);
@@ -39,6 +45,7 @@ export default function DebugPanel({
   }, [open, stage.id, hintLevel, systemPromptPreview]);
 
   const prompt = systemPromptPreview ?? fetchedPrompt;
+  const stageInterruptions = getInterruptionsForStage(stage.id);
 
   if (process.env.NODE_ENV !== 'development') return null;
 
@@ -66,6 +73,57 @@ export default function DebugPanel({
           <p>
             <strong>Forbidden:</strong> {stage.forbiddenTopics.join(', ') || '—'}
           </p>
+
+          {interruptionDebug && (
+            <details open>
+              <summary>Temporal interruptions</summary>
+              <p>
+                <strong>Aktiv:</strong> {interruptionDebug.activeId ?? '—'}
+              </p>
+              <p>
+                <strong>Sidste trigger:</strong> {interruptionDebug.lastTrigger ?? '—'}
+              </p>
+              <p>
+                <strong>Afspillet:</strong>{' '}
+                {interruptionDebug.firedIds.length > 0
+                  ? interruptionDebug.firedIds.join(', ')
+                  : '—'}
+              </p>
+              {interruptionDebug.pendingTimers.length > 0 && (
+                <ul className="debug-interruption-list">
+                  {interruptionDebug.pendingTimers.map((t) => (
+                    <li key={t.id}>
+                      {t.id} ({t.trigger}) ~{Math.round(t.firesInMs / 1000)}s
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {interruptionDebug.history.length > 0 && (
+                <ul className="debug-interruption-list">
+                  {interruptionDebug.history.map((h) => (
+                    <li key={`${h.id}-${h.at}`}>
+                      {h.id} ← {h.source}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {onForceInterruption && (
+                <div className="debug-interruption-buttons">
+                  {stageInterruptions.map((def) => (
+                    <button
+                      key={def.id}
+                      type="button"
+                      className="debug-interruption-btn"
+                      onClick={() => onForceInterruption(def.id)}
+                    >
+                      {def.id}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </details>
+          )}
+
           {visionDescription && (
             <p>
               <strong>Vision:</strong> {visionDescription}

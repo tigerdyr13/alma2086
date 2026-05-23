@@ -6,6 +6,8 @@ import ConnectionStability from '@/components/ConnectionStability';
 import DebugPanel from '@/components/DebugPanel';
 import ShowAlmaCamera from '@/components/ShowAlmaCamera';
 import StageTransition from '@/components/StageTransition';
+import TemporalInterruption from '@/components/TemporalInterruption';
+import { useTemporalInterruptions } from '@/hooks/useTemporalInterruptions';
 import { mimeToUploadFilename } from '@/lib/audio-upload';
 import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
 import { canShowAlma } from '@/lib/show-alma-stages';
@@ -120,6 +122,30 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const [showAlmaOpen, setShowAlmaOpen] = useState(false);
   const [transitionDone, setTransitionDone] = useState(false);
 
+  const isBusyBase =
+    status === 'connecting' ||
+    status === 'thinking' ||
+    status === 'speaking' ||
+    status === 'sending-image' ||
+    status === 'analyzing-image';
+
+  const {
+    activeInterruption,
+    isInterruptionActive,
+    dismissInterruption,
+    notifyActivity,
+    notifyAfterImage,
+    forceTrigger,
+    debugInterruptionState,
+  } = useTemporalInterruptions({
+    stageId: stage.id,
+    enabled: transitionDone && !isBusyBase && !qrOpen && !showAlmaOpen,
+    messageCount: messages.length,
+    hintLevel,
+  });
+
+  const isBusy = isBusyBase || isInterruptionActive;
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -233,6 +259,10 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
       updatedAt: new Date().toISOString(),
     });
   }, [messages, hintLevel, stage.id, sessionLoaded]);
+
+  useEffect(() => {
+    notifyActivity();
+  }, [messages, status, notifyActivity]);
 
   useEffect(() => {
     if (chatLogRef.current) {
@@ -391,6 +421,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
 
         const played = await playAlmaAudio(audioSrc, almaMessageIndex);
         if (!played) setStatus('idle');
+        notifyAfterImage();
       } catch (err) {
         console.error('[AlmaChat] Show Alma error:', err);
         const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
@@ -398,7 +429,17 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         setStatus('error');
       }
     },
-    [stage.id, playAlmaAudio],
+    [stage.id, playAlmaAudio, notifyAfterImage],
+  );
+
+  const handleInterruptionComplete = useCallback(
+    (lines: { displayText: string }[]) => {
+      setMessages((prev) => [
+        ...prev,
+        ...lines.map((line) => ({ role: 'alma' as const, text: line.displayText })),
+      ]);
+    },
+    [],
   );
 
   const handlePlayAlmaMessage = useCallback(
@@ -413,9 +454,10 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
       e.preventDefault();
       if (status !== 'idle' && status !== 'error') return;
       unlockAudio();
+      notifyActivity();
       startRecording();
     },
-    [status, startRecording, unlockAudio],
+    [status, startRecording, unlockAudio, notifyActivity],
   );
 
   const handlePointerUp = useCallback(
@@ -431,12 +473,6 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     setStatus('idle');
   }, []);
 
-  const isBusy =
-    status === 'connecting' ||
-    status === 'thinking' ||
-    status === 'speaking' ||
-    status === 'sending-image' ||
-    status === 'analyzing-image';
   const isDisabled = isBusy;
   const talkDisabled = isBusy || status === 'recording';
   const buttonLabel = isHolding ? 'SLIP FOR AT SENDE' : 'HOLD FOR AT TALE';
@@ -444,6 +480,13 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     <>
       {!transitionDone && (
         <StageTransition stage={stage} onComplete={() => setTransitionDone(true)} />
+      )}
+      {activeInterruption && (
+        <TemporalInterruption
+          payload={activeInterruption}
+          onComplete={handleInterruptionComplete}
+          onDismiss={dismissInterruption}
+        />
       )}
     <div
       className={`alma-container${transitionDone ? ' alma-container--ready' : ' alma-container--hidden'}`}
@@ -568,6 +611,8 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         systemPromptPreview={lastPromptPreview}
         visionDescription={lastVisionDescription}
         rawVisionResponse={lastRawVisionResponse}
+        interruptionDebug={debugInterruptionState}
+        onForceInterruption={forceTrigger}
       />
     </div>
     </>

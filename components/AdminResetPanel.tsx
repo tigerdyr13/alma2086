@@ -8,6 +8,7 @@ import {
   getAllStageSessionSummaries,
   type StageSessionSummary,
 } from '@/lib/session';
+import { clearAllInterruptionFlags, clearInterruptionFlagsForStage } from '@/lib/interruption-storage';
 import type { StageId } from '@/lib/stages';
 
 function formatTime(iso: string | null): string {
@@ -39,6 +40,7 @@ export default function AdminResetPanel() {
 
   const handleResetStage = (stageId: StageId) => {
     clearStageSession(stageId);
+    clearInterruptionFlagsForStage(stageId);
     refresh();
     setStatus(`${stageId} er nulstillet på denne telefon.`);
     setConfirmAll(false);
@@ -52,6 +54,7 @@ export default function AdminResetPanel() {
     }
 
     clearAllStageSessions();
+    clearAllInterruptionFlags();
     refresh();
     setConfirmAll(false);
     setStatus('Hele spillet er nulstillet på denne telefon.');
