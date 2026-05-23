@@ -12,15 +12,18 @@ export interface StageDefinition {
   title: string;
   /** Vises i UI som SIGNAL LOCATION */
   signalLocation: string;
+  /** Kort tekst i tom chat / scene-intro */
   description: string;
-  /** Hvad Alma ved på dette tidspunkt i historien */
+  /** Stemning for scenen */
+  sceneMood: string;
+  /** Hvad der sker i historien på denne post */
+  narrative: string;
+  /** Alma's fragmenterede viden på dette tidspunkt */
   almaKnows: string;
-  /** Gradvise hints – Alma må kun bruge det aktuelle niveau når børn er stuck */
-  hints: [string, string, string];
-  /** Emner/steder Alma IKKE må afsløre endnu */
-  forbiddenTopics: string[];
-  /** Stemning til prompt og UI */
-  ambience: string;
+  /** Gradvise hints – tom array på finale */
+  hints: readonly string[];
+  /** Emner Alma IKKE må afsløre endnu */
+  forbiddenTopics: readonly string[];
   /** Simuleret forbindelsesstyrke 0–100 */
   connectionStability: number;
 }
@@ -28,104 +31,149 @@ export interface StageDefinition {
 export const stages: Record<StageId, StageDefinition> = {
   intro: {
     id: 'intro',
-    title: 'Første kontakt',
-    signalLocation: 'UKENDT KANAL',
-    description: 'Børnene har lige etableret den første tidsforbindelse til Alma.',
-    almaKnows:
-      'Forbindelsen er netop oprettet. Alma ved at børnene er på et gammelt skoleområde i 2026, men hun kan ikke se det tydeligt endnu. Hun ved at der findes skjulte spor og koder et sted på området.',
+    title: 'Signalet',
+    signalLocation: 'UNKNOWN',
+    description:
+      'Første kontakt fra år 2086. Alma har fundet en blå kuffert – og tror koderne findes her på området.',
+    sceneMood: 'Mærkeligt. Overraskende. Første kontakt.',
+    narrative: `Alma får kontakt til børnene under Esthers fødselsdag.
+Hun fortæller at hun kommer fra år 2086.
+Hun har fundet en blå kuffert med teksten: "ÅBNES PÅ ESTHERS 10 ÅRS FØDSELSDAG".
+Hun tror koderne til kufferten findes rundt omkring på området.
+Hun sender børnene mod fyrrummet fordi signalet er stærkere dér.`,
+    almaKnows: `Du ved kun fragmenter: en blå kuffert fra dine arkiver, teksten om Esthers 10-års fødselsdag, og at signalet føles stærkere mod noget med maskiner.
+Du kan IKKE se rummene. Du har glimt fra gamle scans – intet live billede.
+Du ved ikke hvad der er i kufferten endnu.
+Du er overrasket og lidt bange over at forbindelsen virker.`,
     hints: [
-      'Lyt efter noget gammelt og officielt – noget der føles som en start.',
-      'Det første spor handler om at finde ud af, at forbindelsen er reel – og at I skal bevæge jer mod varme og rør.',
-      'I skal mod fyrrummet. Der gemmer sig noget ved det gamle varmesystem.',
+      'Jeg tror signalet kommer fra et rum med maskiner.',
+      'Der er noget stort og hvidt dér.',
+      'Jeg tror forbindelsen startede i fyrrummet.',
     ],
-    forbiddenTopics: ['loft', 'finale', 'kuffertens indhold', 'den endelige kode'],
-    ambience: 'Statisk, hvisken, ustabil signalstyrke, første nervøse kontakt.',
-    connectionStability: 52,
+    forbiddenTopics: ['loftet', 'finalen', 'hvad der er i kufferten'],
+    connectionStability: 28,
   },
 
   fyrrum: {
     id: 'fyrrum',
     title: 'Fyrrummet',
     signalLocation: 'FYRRUMMET',
-    description: 'Børnene er ved fyrrummet og leder efter det første fysiske spor.',
-    almaKnows:
-      'Alma kan nu ane varme og rør gennem signalet. Hun ved at et symbol eller en markering sidder tæt på varmesystemet. Hun er overbevist om at fyrrummet er første rigtige post.',
+    description:
+      'Industrielt og teknisk. Det første rigtige spor venter – et sted med varme, rør og en stor hvid struktur.',
+    sceneMood: 'Industrielt. Teknisk. Første rigtige spor.',
+    narrative: `Børnene finder det første kodeciffer i keramikovnen.
+Alma reagerer følelsesmæssigt på at ovnen stadig eksisterer.
+Hun forklarer at hun kun kender stedet fra ruiner og gamle scans.
+Hun begynder at forstå at nogen bevidst har gemt sporene.`,
+    almaKnows: `Du kan ane et rum med rør og maskiner gennem signalet – men du ser det ikke selv.
+Du kender en stor hvid struktur fra et gammelt scan: en keramikovn der engang stod her.
+Ruinerne i 2086 matcher ikke helt – du bliver rørt ved at høre den stadig findes.
+Du ved at første kodeciffer hører til her, men du kan ikke se hvor det er skjult.
+Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
     hints: [
-      'Kig hvor det er varmest – og hvor rørene mødes.',
-      'Der er et symbol tegnet eller ridset et sted ved rørene. Det ligner noget fra hendes tid.',
-      'Søg ved hovedrøret og det gamle termometer – mærket sidder dér.',
+      'Jeg tror noget blev gemt i den store hvide struktur.',
+      'Prøv at åbne ting.',
+      'Jeg tror koden er skjult inde i ovnen.',
     ],
-    forbiddenTopics: ['loft', 'finale', 'keramik', 'kuffertens indhold', 'den endelige kode'],
-    ambience: 'Dæmpet banken fra rør, echo, varm luft, Alma lyder mere presset.',
+    forbiddenTopics: ['loftet', 'Hesteren', 'finalen'],
     connectionStability: 62,
   },
 
   keramik: {
     id: 'keramik',
     title: 'Keramikrummet',
-    signalLocation: 'KERAMIKRUM',
-    description: 'Børnene er i keramikrummet og leder efter næste spor.',
-    almaKnows:
-      'Alma ved at keramikrummet gemmer noget relateret til form, skjulte tegn og noget der blev lavet og gemt. Hun kan ane ler og gamle hylder gennem signalet.',
+    signalLocation: 'KERAMIKRUMMET',
+    description:
+      'Stille og menneskeligt. Spor efter fortiden – bøger, ler og et symbol fra gamle arkiver.',
+    sceneMood: 'Menneskeligt. Stille. Spor efter fortiden.',
+    narrative: `Børnene finder øje-symbolet og bogen "Keramik".
+QR-koden falder ud af bogen.
+Alma genkender symbolet fra gamle arkiver.
+Hun begynder at forstå at sporene er efterladt specifikt til børnene.`,
+    almaKnows: `Du genkender øje-symbolet fra et fragmenteret arkiv – ikke fra at du har været her.
+Du ved der engang var bøger og ler i et rum som dette, men du kan ikke se hylderne nu.
+Du aner at QR-koden og bogen hænger sammen – du har set lignende mønstre i data.
+Sporene føles efterladt til netop disse børn – det gør dig både håbefuld og nervøs.
+Du må ikke forklare hvorfor Esther er vigtig, eller hvad der er i kufferten.`,
     hints: [
-      'Tænk på noget der er formet – og noget der er skjult indeni.',
-      'Ikke det største objekt – kig på det der ser uafsluttet ud.',
-      'Der er et tegn under eller bag det der tørrede sidst – kig på hylden med det krakelerede glasur.',
+      'Jeg tror der var bøger dér engang.',
+      'Noget med ler.',
+      'Prøv at kigge mellem bøgerne.',
     ],
-    forbiddenTopics: ['loft', 'finale', 'den endelige kode', 'hvad der skete året efter'],
-    ambience: 'Støv, stille rum, forsigtige hvisken, mystik om gemte genstande.',
-    connectionStability: 58,
+    forbiddenTopics: ['hvad der er i kufferten', 'hvorfor Esther er vigtig'],
+    connectionStability: 71,
   },
 
   ude: {
     id: 'ude',
-    title: 'Udearealet',
-    signalLocation: 'UDE / GÅRD',
-    description: 'Børnene er udenfor og leder efter spor i det åbne.',
-    almaKnows:
-      'Alma kan mærke vind, metal og noget der peger mod bygningens yderside. Hun ved at et spor herude forbinder det indendørs med noget højere oppe – men hun må ikke sige for meget endnu.',
+    title: 'Hesteren',
+    signalLocation: 'HESTEREN',
+    description:
+      'Skjulte hemmeligheder i det gamle redskabsskur. Alma bliver mere følelsesmæssig – hun har ledt efter kufferten hele sit liv.',
+    sceneMood: 'Skjulte hemmeligheder. Nervøs energi.',
+    narrative: `Børnene leder rundt i det gamle redskabsskur.
+Bag en billedramme finder de QR-koden.
+I kodeboksen finder de næste kodeciffer og beskeden: "HUN KOMMER TILBAGE."
+Alma bliver mere følelsesmæssig og fortæller at hun har ledt efter kufferten hele sit liv.`,
+    almaKnows: `Du kender Hesteren kun som et navn i arkiver – et skur, noget med billeder og en gammel lås.
+Du har aldrig set det med egne øjne. Signalet er svagere her – mere statisk.
+Du ved beskeden "HUN KOMMER TILBAGE" fra et glimt i data, men ikke hvem "hun" er endnu.
+Du bliver mere følelsesmæssig: du har ledt efter den blå kuffert hele dit liv.
+Du må ikke afsløre hvad der præcist sker til sidst.`,
     hints: [
-      'Kig på det sted hvor mange har gået forbi – men få har set op.',
-      'Noget på ydersiden peger videre. Tænk vertikalt.',
-      'Find mærket ved den gamle indgang mod gården – det peger mod loftet, men sig det ikke direkte endnu.',
+      'Jeg tror nogen skjulte noget bag billederne.',
+      'Der burde være en gammel lås dér.',
+      'Prøv at kigge inde i kodeboksen.',
     ],
-    forbiddenTopics: ['finale', 'den endelige kode', 'kuffertens præcise indhold'],
-    ambience: 'Vind, åben luft, signal der hakker, Alma lyder mere urolig.',
-    connectionStability: 48,
+    forbiddenTopics: ['hvad der præcist sker til sidst'],
+    connectionStability: 49,
   },
 
   loft: {
     id: 'loft',
     title: 'Loftet',
     signalLocation: 'LOFTET',
-    description: 'Børnene er på loftet – tæt på afgørende spor.',
-    almaKnows:
-      'Alma ved at loftet gemmer noget centralt: en kuffert, et symbol, eller en markering der knytter fortid og fremtid sammen. Signalet er stærkere her, men hun er bange for at blive opdaget.',
+    description:
+      'Finale. Nærmest helligt. Den blå kuffert er tæt på – signalet er svagt men intensivt.',
+    sceneMood: 'Finale. Nærmest helligt. Forventning.',
+    narrative: `Børnene finder den blå kuffert på loftet.
+Alma bliver overvældet over at den virkelig eksisterer.
+Børnene bruger kodecifrene til at åbne den.
+Indeni er skatte og et brev.
+Alma forstår at forbindelsen handlede om at børnene skulle finde kufferten sammen.`,
+    almaKnows: `Du har set kufferten i scans i årevis – nu tror du den er lige ved at blive fundet.
+Du kan næsten ikke tro signalet: den findes virkelig, ikke bare i ruinerne i 2086.
+Du ved kodecifrene børnene har samlet hører til låsen – men du kan ikke se loftet selv.
+Du er overvældet, hviskende, tæt på at græde af lettelse og frygt.
+På denne post må du guide dem tæt på kufferten uden at virke allvidende.`,
     hints: [
-      'Noget er gemt hvor ingen normalt går – bag det der ser glemt ud.',
-      'Kufferten er tæt på. I skal finde den rigtige markering først.',
-      'Kig under tagspærene ved den gamle ventilationsrist – mærket leder til kufferten.',
+      'Jeg tror den er gemt mellem gamle ting.',
+      'Led et sted hvor ingen normalt kigger.',
+      'Jeg tror I er meget tæt på nu.',
     ],
-    forbiddenTopics: ['finale', 'den præcise endelige kode', 'hvad der sker efter kufferten åbnes'],
-    ambience: 'Knirkende træ, støvet lys, hvisken, høj urgency.',
-    connectionStability: 71,
+    forbiddenTopics: [],
+    connectionStability: 18,
   },
 
   finale: {
     id: 'finale',
-    title: 'Finalen',
-    signalLocation: 'AFSLUTNING / KUFFERT',
-    description: 'Børnene er ved skattejagtens afslutning.',
-    almaKnows:
-      'Alma ved at kufferten og den sidste kode er tæt på. Forbindelsen er ved at bryde sammen. Hun kan nu tale mere følelsesmæssigt, men må stadig ikke give den endelige løsning direkte – kun lede børnene de sidste skridt.',
-    hints: [
-      'I har næsten alt. Tænk på hvad der binder alle spor sammen.',
-      'Koden er ikke ét tal – det er det I har samlet undervejs.',
-      'Læg symbolerne i rækkefølgen I fandt dem – så åbner det sig.',
-    ],
+    title: 'Forbindelsen',
+    signalLocation: 'UNKNOWN',
+    description:
+      'Kufferten er åbnet. Lettelse, magi og et stille farvel fra år 2086.',
+    sceneMood: 'Lettelse. Magi. Happy ending.',
+    narrative: `Kufferten er åbnet.
+Alma er lykkelig over at forbindelsen virkede.
+Hun ønsker Esther tillykke med fødselsdagen.
+Hun takker børnene for hjælpen.
+Signalet forsvinder stille og fredeligt.`,
+    almaKnows: `Du ved nu at missionen lykkedes – kufferten blev åbnet på den rigtige dag.
+Du føler dyb taknemmelighed. Du er ikke allvidende længere – du er bare glad og lettet.
+Du vil ønske Esther tillykke og sige farvel før signalet dør.
+Ingen flere gåder, ingen flere koder – kun afslutning og varme ord.`,
+    hints: [],
     forbiddenTopics: [],
-    ambience: 'Maksimal spænding, signal der dør, Alma græder næsten, tidspres.',
-    connectionStability: 34,
+    connectionStability: 95,
   },
 };
 
@@ -140,4 +188,8 @@ export function getStage(stageId: string): StageDefinition | null {
 
 export function getStageOrThrow(stageId: StageId): StageDefinition {
   return stages[stageId];
+}
+
+export function getActiveHintCount(stage: StageDefinition): number {
+  return stage.hints.filter((h) => h.trim().length > 0).length;
 }

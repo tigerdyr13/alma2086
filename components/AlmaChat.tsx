@@ -1,8 +1,13 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import ConnectionStability from '@/components/ConnectionStability';
 import DebugPanel from '@/components/DebugPanel';
+import QrScanner from '@/components/QrScanner';
+import ShowAlmaCamera from '@/components/ShowAlmaCamera';
+import { mimeToUploadFilename } from '@/lib/audio-upload';
 import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
+import { canShowAlma } from '@/lib/show-alma-stages';
 import type { StageDefinition } from '@/lib/stages';
 
 type Message = ChatMessage & {
@@ -14,7 +19,15 @@ type ApiHistory = {
   content: string;
 };
 
-type Status = 'idle' | 'recording' | 'connecting' | 'thinking' | 'speaking' | 'error';
+type Status =
+  | 'idle'
+  | 'recording'
+  | 'connecting'
+  | 'thinking'
+  | 'speaking'
+  | 'sending-image'
+  | 'analyzing-image'
+  | 'error';
 
 interface TalkApiResponse {
   transcript: string;
@@ -33,12 +46,25 @@ interface AlmaChatProps {
   stage: StageDefinition;
 }
 
+interface ShowAlmaApiResponse {
+  displayText: string;
+  speechText?: string;
+  visionDescription?: string;
+  audioBase64: string;
+  mimeType: string;
+  systemPromptPreview?: string;
+  rawModelResponse?: string;
+  error?: string;
+}
+
 const STATUS_LABELS: Record<Status, string> = {
   idle: 'Tryk og hold for at tale med Alma',
   recording: 'Optager… tal nu',
   connecting: 'Forbinder til 2086…',
   thinking: 'Alma svarer…',
   speaking: 'Alma taler…',
+  'sending-image': 'Sender til 2086…',
+  'analyzing-image': 'Alma analyserer signalet…',
   error: 'Forbindelsesfejl',
 };
 
@@ -48,6 +74,8 @@ const BUTTON_ICONS: Record<Status, string> = {
   connecting: '📡',
   thinking: '⏳',
   speaking: '🔊',
+  'sending-image': '📡',
+  'analyzing-image': '👁',
   error: '⚠',
 };
 
@@ -83,6 +111,10 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
   const [isHolding, setIsHolding] = useState(false);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [lastPromptPreview, setLastPromptPreview] = useState<string | null>(null);
+  const [lastVisionDescription, setLastVisionDescription] = useState<string | null>(null);
+  const [lastRawVisionResponse, setLastRawVisionResponse] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [showAlmaOpen, setShowAlmaOpen] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -260,6 +292,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
 
     const mimeType = recorder.mimeType || 'audio/webm';
     const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+    const uploadFilename = mimeToUploadFilename(mimeType);
 
     if (audioBlob.size < 2000) {
       setError('Optagelsen var for kort. Hold knappen lidt længere.');
@@ -268,7 +301,8 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     }
 
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.webm');
+    formData.append('audio', audioBlob, uploadFilename);
+    formData.append('audioMime', mimeType);
     formData.append('history', JSON.stringify(toApiHistory(messagesRef.current)));
     formData.append('currentStage', stage.id);
     formData.append('hintLevel', String(hintLevelRef.current));
@@ -314,6 +348,55 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     }
   }, [isHolding, stage.id, playAlmaAudio]);
 
+  const handleShowAlmaSend = useCallback(
+    async (imageBlob: Blob) => {
+      setShowAlmaOpen(false);
+      setError(null);
+      setStatus('sending-image');
+
+      const formData = new FormData();
+      formData.append('image', imageBlob, 'photo.jpg');
+      formData.append('currentStage', stage.id);
+      formData.append('history', JSON.stringify(toApiHistory(messagesRef.current)));
+
+      try {
+        setStatus('analyzing-image');
+        const res = await fetch('/api/show-alma', { method: 'POST', body: formData });
+        const data: ShowAlmaApiResponse = await res.json();
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        if (data.systemPromptPreview) setLastPromptPreview(data.systemPromptPreview);
+        if (data.visionDescription) setLastVisionDescription(data.visionDescription);
+        if (data.rawModelResponse) setLastRawVisionResponse(data.rawModelResponse);
+
+        const { displayText, audioBase64, mimeType: audioMime } = data;
+        const audioSrc = `data:${audioMime};base64,${audioBase64}`;
+
+        let almaMessageIndex = 0;
+        setMessages((prev) => {
+          almaMessageIndex = prev.length + 1;
+          return [
+            ...prev,
+            { role: 'user', text: '📷 Viste Alma stedet' },
+            { role: 'alma', text: displayText, audioSrc },
+          ];
+        });
+
+        const played = await playAlmaAudio(audioSrc, almaMessageIndex);
+        if (!played) setStatus('idle');
+      } catch (err) {
+        console.error('[AlmaChat] Show Alma error:', err);
+        const msg = err instanceof Error ? err.message : 'Ukendt fejl fra serveren';
+        setError(msg);
+        setStatus('error');
+      }
+    },
+    [stage.id, playAlmaAudio],
+  );
+
   const handlePlayAlmaMessage = useCallback(
     (audioSrc: string, index: number) => {
       void playAlmaAudio(audioSrc, index);
@@ -344,10 +427,15 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
     setStatus('idle');
   }, []);
 
-  const isDisabled = status === 'connecting' || status === 'thinking' || status === 'speaking';
+  const isBusy =
+    status === 'connecting' ||
+    status === 'thinking' ||
+    status === 'speaking' ||
+    status === 'sending-image' ||
+    status === 'analyzing-image';
+  const isDisabled = isBusy;
+  const talkDisabled = isBusy || status === 'recording';
   const buttonLabel = isHolding ? 'SLIP FOR AT SENDE' : 'HOLD FOR AT TALE';
-  const stability = stage.connectionStability;
-
   return (
     <div className="alma-container">
       <header className="alma-header">
@@ -363,13 +451,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
             <span className="stage-hud-label">SIGNAL LOCATION</span>
             <span className="stage-hud-value">{stage.signalLocation}</span>
           </div>
-          <div className="stage-hud-row">
-            <span className="stage-hud-label">CONNECTION STABLE</span>
-            <span className="stage-hud-value stage-hud-value--stability">{stability}%</span>
-          </div>
-          <div className="stage-stability-bar" aria-hidden="true">
-            <div className="stage-stability-fill" style={{ width: `${stability}%` }} />
-          </div>
+          <ConnectionStability base={stage.connectionStability} />
         </div>
       </header>
 
@@ -415,11 +497,32 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
           <span className="status-text">{STATUS_LABELS[status]}</span>
         </div>
 
+        <div className="action-row">
+          <button
+            type="button"
+            className="action-btn action-btn--scan"
+            onClick={() => setQrOpen(true)}
+            disabled={isBusy}
+          >
+            📡 SCAN SIGNAL
+          </button>
+          {canShowAlma(stage.id) && (
+            <button
+              type="button"
+              className="action-btn action-btn--show"
+              onClick={() => setShowAlmaOpen(true)}
+              disabled={isBusy}
+            >
+              📷 VIS ALMA DET
+            </button>
+          )}
+        </div>
+
         <button
           className={[
             'talk-button',
             isHolding ? 'talk-button--active' : '',
-            isDisabled ? 'talk-button--disabled' : '',
+            talkDisabled ? 'talk-button--disabled' : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -427,7 +530,7 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          disabled={isDisabled}
+          disabled={talkDisabled}
           aria-label="Hold nede for at tale med Alma"
           aria-pressed={isHolding}
         >
@@ -438,11 +541,22 @@ export default function AlmaChat({ stage }: AlmaChatProps) {
         </button>
       </div>
 
+      {qrOpen && <QrScanner onClose={() => setQrOpen(false)} />}
+      {showAlmaOpen && (
+        <ShowAlmaCamera
+          onClose={() => setShowAlmaOpen(false)}
+          onSend={handleShowAlmaSend}
+          disabled={isBusy}
+        />
+      )}
+
       <DebugPanel
         stage={stage}
         hintLevel={hintLevel}
         messageCount={messages.length}
         systemPromptPreview={lastPromptPreview}
+        visionDescription={lastVisionDescription}
+        rawVisionResponse={lastRawVisionResponse}
       />
     </div>
   );

@@ -483,6 +483,19 @@ body::before {
   color: var(--color-yellow);
 }
 
+.stage-hud-value--pulse {
+  display: inline-block;
+  min-width: 3.5em;
+  text-align: right;
+  transition: opacity 0.15s ease;
+  animation: stability-text-flicker 6s ease-in-out infinite;
+}
+
+@keyframes stability-text-flicker {
+  0%, 100% { opacity: 1; text-shadow: 0 0 6px rgba(255, 229, 102, 0.25); }
+  50% { opacity: 0.94; text-shadow: 0 0 10px rgba(255, 229, 102, 0.4); }
+}
+
 .stage-stability-bar {
   height: 3px;
   background: rgba(0, 229, 255, 0.1);
@@ -495,7 +508,22 @@ body::before {
   height: 100%;
   background: linear-gradient(90deg, var(--color-red), var(--color-yellow), var(--color-green));
   box-shadow: 0 0 8px var(--color-cyan-glow);
-  transition: width 0.6s ease;
+  transition: width 0.9s ease-in-out;
+}
+
+.stage-stability-fill--pulse {
+  animation: stability-bar-glow 6s ease-in-out infinite;
+}
+
+@keyframes stability-bar-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 229, 102, 0.28);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 9px rgba(255, 229, 102, 0.45);
+    filter: brightness(1.05);
+  }
 }
 
 /* ── Signal lost ──────────────────────────────────── */
@@ -624,5 +652,200 @@ body::before {
   max-height: 200px;
   overflow-y: auto;
   color: var(--color-text);
+}
+
+/* ── Action buttons (scan / show alma) ─────────────── */
+.action-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.action-btn {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-panel);
+  color: var(--color-cyan);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-btn:hover:not(:disabled) {
+  border-color: var(--color-cyan-dim);
+  box-shadow: 0 0 16px var(--color-cyan-glow);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-btn--scan {
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.action-btn--show {
+  border-color: rgba(255, 229, 102, 0.35);
+  color: var(--color-yellow);
+}
+
+.action-btn--primary {
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--color-cyan);
+}
+
+.action-btn--secondary {
+  color: var(--color-text-dim);
+}
+
+.status-indicator--sending-image,
+.status-indicator--analyzing-image {
+  background: var(--color-yellow);
+  box-shadow: 0 0 10px rgba(255, 229, 102, 0.5);
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* ── QR Scanner overlay ───────────────────────────── */
+.scanner-overlay,
+.show-alma-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 10, 24, 0.96);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.scanner-panel,
+.show-alma-panel {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-panel);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scanner-header,
+.show-alma-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.scanner-title,
+.show-alma-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+}
+
+.scanner-close {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.scanner-viewport {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  min-height: 280px;
+}
+
+.scanner-viewport video {
+  border-radius: var(--radius);
+  width: 100% !important;
+  object-fit: cover !important;
+}
+
+#qr-reader {
+  border: none !important;
+}
+
+#qr-reader__dashboard_section_csr,
+#qr-reader__dashboard_section_fsr,
+#qr-reader__dashboard_section_swaplink {
+  display: none !important;
+}
+
+.scanner-scanline {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+  box-shadow: 0 0 12px var(--color-cyan-glow);
+  animation: scanner-line 2.2s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@keyframes scanner-line {
+  0%, 100% { transform: translateY(-120px); opacity: 0.3; }
+  50% { transform: translateY(80px); opacity: 0.9; }
+}
+
+.scanner-hint,
+.show-alma-hint {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-dim);
+}
+
+.scanner-error {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-red);
+}
+
+/* ── Show Alma camera ─────────────────────────────── */
+.show-alma-input {
+  display: none;
+}
+
+.show-alma-preview {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: #000;
+}
+
+.show-alma-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.show-alma-actions .action-btn {
+  flex: 1;
+  padding: 14px 10px;
+  font-size: 10px;
 }
 

@@ -5,16 +5,18 @@ import {
   isStuckRequest,
   shouldIncrementHintLevel,
 } from '@/lib/build-system-prompt';
-import { getStage, isValidStageId, type StageId } from '@/lib/stages';
+import { synthesizeAlmaSpeech } from '@/lib/elevenlabs';
+import { parseAlmaReply } from '@/lib/parse-alma-reply';
+import {
+  getOpenAIErrorMessage,
+  mimeToUploadFilename,
+  resolveAudioMime,
+} from '@/lib/audio-upload';
+import { getActiveHintCount, getStage, isValidStageId, type StageId } from '@/lib/stages';
 
 interface HistoryMessage {
   role: 'user' | 'assistant';
   content: string;
-}
-
-interface AlmaReply {
-  displayText: string;
-  speechText: string;
 }
 
 interface TalkResponse {
@@ -35,30 +37,6 @@ function getMissingEnvVars(): string[] {
   return required.filter((k) => !process.env[k]);
 }
 
-function parseAlmaReply(raw: string): AlmaReply {
-  const trimmed = raw.trim();
-  if (!trimmed) return { displayText: '', speechText: '' };
-
-  try {
-    const cleaned = trimmed
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
-    const displayText =
-      typeof parsed.displayText === 'string' ? parsed.displayText.trim() : '';
-    const speechText =
-      typeof parsed.speechText === 'string' ? parsed.speechText.trim() : '';
-
-    if (displayText && speechText) return { displayText, speechText };
-    if (displayText) return { displayText, speechText: displayText };
-  } catch {
-    // fallback
-  }
-
-  return { displayText: trimmed, speechText: trimmed };
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const missing = getMissingEnvVars();
   if (missing.length > 0) {
@@ -76,6 +54,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const audioEntry = formData.get('audio') as File | null;
+  const audioMimeRaw = formData.get('audioMime') as string | null;
   const historyRaw = formData.get('history') as string | null;
   const stageRaw = formData.get('currentStage') as string | null;
   const hintLevelRaw = formData.get('hintLevel') as string | null;
@@ -111,8 +90,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let transcript: string;
   try {
     const audioBlob = await audioEntry.arrayBuffer();
-    const audioFile = await toFile(Buffer.from(audioBlob), 'recording.webm', {
-      type: audioEntry.type || 'audio/webm',
+
+    if (audioBlob.byteLength < 1000) {
+      return NextResponse.json(
+        { error: 'Lydfilen er for kort – hold optage-knappen længere nede' },
+        { status: 400 },
+      );
+    }
+
+    const normalizedMime = resolveAudioMime(audioMimeRaw || audioEntry.type, audioEntry.name);
+    const filename =
+      audioEntry.name && audioEntry.name.includes('.')
+        ? audioEntry.name
+        : mimeToUploadFilename(normalizedMime);
+
+    const audioFile = await toFile(Buffer.from(audioBlob), filename, {
+      type: normalizedMime,
     });
 
     const transcription = await openai.audio.transcriptions.create({
@@ -124,7 +117,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     transcript = transcription.text.trim();
   } catch (err) {
     console.error('[alma/talk] Transcription error:', err);
-    return NextResponse.json({ error: 'Fejl ved transskription af lyd' }, { status: 500 });
+    const detail = getOpenAIErrorMessage(err);
+    return NextResponse.json(
+      {
+        error:
+          process.env.NODE_ENV === 'development'
+            ? `Transskription fejlede: ${detail}`
+            : 'Fejl ved transskription af lyd – prøv igen eller brug Chrome',
+      },
+      { status: 500 },
+    );
   }
 
   if (!transcript) {
@@ -170,50 +172,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const hintGiven = stuck;
-  const nextHintLevel = shouldIncrementHintLevel(stuck, hintLevel, stage.hints.length)
+  const nextHintLevel = shouldIncrementHintLevel(stuck, hintLevel, getActiveHintCount(stage))
     ? hintLevel + 1
     : hintLevel;
 
   let audioBase64: string;
   let mimeType = 'audio/mpeg';
   try {
-    const ttsBody: Record<string, unknown> = {
-      text: almaReply.speechText,
-      model_id: 'eleven_v3',
-      voice_settings: {
-        stability: 0.35,
-        similarity_boost: 0.8,
-        style: 0.65,
-        use_speaker_boost: true,
-        speed: 0.95,
-      },
-    };
-
-    const ttsRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-        },
-        body: JSON.stringify(ttsBody),
-      },
-    );
-
-    if (!ttsRes.ok) {
-      const errBody = await ttsRes.text();
-      console.error('[alma/talk] ElevenLabs error:', ttsRes.status, errBody);
-      return NextResponse.json(
-        { error: `ElevenLabs fejl (${ttsRes.status}) – tjek voice ID og eleven_v3-adgang` },
-        { status: 500 },
-      );
-    }
-
-    const contentType = ttsRes.headers.get('content-type');
-    if (contentType) mimeType = contentType.split(';')[0].trim();
-
-    audioBase64 = Buffer.from(await ttsRes.arrayBuffer()).toString('base64');
+    const tts = await synthesizeAlmaSpeech(almaReply.speechText);
+    audioBase64 = tts.audioBase64;
+    mimeType = tts.mimeType;
   } catch (err) {
     console.error('[alma/talk] TTS error:', err);
     return NextResponse.json({ error: 'Fejl ved ElevenLabs text-to-speech' }, { status: 500 });

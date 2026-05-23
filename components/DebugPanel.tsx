@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import type { StageDefinition } from '@/lib/stages';
+import { getActiveHintCount } from '@/lib/stages';
 
 interface DebugPanelProps {
   stage: StageDefinition;
   hintLevel: number;
   messageCount: number;
   systemPromptPreview?: string | null;
+  visionDescription?: string | null;
+  rawVisionResponse?: string | null;
 }
 
 export default function DebugPanel({
@@ -15,6 +18,8 @@ export default function DebugPanel({
   hintLevel,
   messageCount,
   systemPromptPreview,
+  visionDescription,
+  rawVisionResponse,
 }: DebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [fetchedPrompt, setFetchedPrompt] = useState<string | null>(null);
@@ -53,7 +58,7 @@ export default function DebugPanel({
             <strong>Stage:</strong> {stage.id}
           </p>
           <p>
-            <strong>Hints brugt:</strong> {hintLevel} / {stage.hints.length}
+            <strong>Hints brugt:</strong> {hintLevel} / {getActiveHintCount(stage)}
           </p>
           <p>
             <strong>Beskeder:</strong> {messageCount}
@@ -61,10 +66,21 @@ export default function DebugPanel({
           <p>
             <strong>Forbidden:</strong> {stage.forbiddenTopics.join(', ') || '—'}
           </p>
+          {visionDescription && (
+            <p>
+              <strong>Vision:</strong> {visionDescription}
+            </p>
+          )}
           <details>
             <summary>System prompt preview</summary>
             <pre className="debug-prompt">{prompt ?? 'Henter…'}</pre>
           </details>
+          {rawVisionResponse && (
+            <details>
+              <summary>Raw vision response</summary>
+              <pre className="debug-prompt">{rawVisionResponse}</pre>
+            </details>
+          )}
         </div>
       )}
     </div>

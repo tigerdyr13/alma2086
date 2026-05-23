@@ -187,7 +187,8 @@ export const stages = {
     almaKnows: '...',
     hints: ['lille hint', 'medium hint', 'stærkt hint'],
     forbiddenTopics: ['loft', 'finale'],
-    ambience: '...',
+    sceneMood: '...',
+    narrative: '...',
     connectionStability: 62,
   },
   // ...
