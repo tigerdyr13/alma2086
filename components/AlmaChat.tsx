@@ -1,14 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import ConnectionStability from '@/components/ConnectionStability';
 import DebugPanel from '@/components/DebugPanel';
-import QrScanner from '@/components/QrScanner';
 import ShowAlmaCamera from '@/components/ShowAlmaCamera';
 import { mimeToUploadFilename } from '@/lib/audio-upload';
 import { loadStageSession, saveStageSession, type ChatMessage } from '@/lib/session';
 import { canShowAlma } from '@/lib/show-alma-stages';
 import type { StageDefinition } from '@/lib/stages';
+
+const QrScanner = dynamic(() => import('@/components/QrScanner'), { ssr: false });
 
 type Message = ChatMessage & {
   audioSrc?: string;

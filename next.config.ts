@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Øg body-size limit for lydoptagelser (default er 4 MB)
+  transpilePackages: ['html5-qrcode'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
