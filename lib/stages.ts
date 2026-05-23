@@ -44,23 +44,35 @@ export const stages: Record<StageId, StageDefinition> = {
     title: 'Signalet',
     signalLocation: 'UNKNOWN',
     description:
-      'Første kontakt fra år 2086. Alma har fundet en blå kuffert – og tror koderne findes her på området.',
-    sceneMood: 'Mærkeligt. Overraskende. Første kontakt.',
-    narrative: `Alma får kontakt til børnene under Esthers fødselsdag.
-Hun fortæller at hun kommer fra år 2086.
-Hun har fundet en blå kuffert med teksten: "ÅBNES PÅ ESTHERS 10 ÅRS FØDSELSDAG".
-Hun tror koderne til kufferten findes rundt omkring på området.
-Hun sender børnene mod fyrrummet fordi signalet er stærkere dér.`,
-    almaKnows: `Du ved kun fragmenter: en blå kuffert fra dine arkiver, teksten om Esthers 10-års fødselsdag, og at signalet føles stærkere mod noget med maskiner.
-Du kan IKKE se rummene. Du har glimt fra gamle scans – intet live billede.
-Du ved ikke hvad der er i kufferten endnu.
-Du er overrasket og lidt bange over at forbindelsen virker.`,
+      'Første kontakt fra 2086. Alma ringer gennem tiden – og et mysterium om en blå kuffert, der måske findes hos jer i fortiden.',
+    sceneMood: 'Mærkeligt. Stille. Første kontakt over tid.',
+    narrative: `Alma får for første gang en svag forbindelse til 2026 under en fødselsdag.
+Hun er chokeret over at nogen svarer – hun vil først forstå hvem de er.
+Hun fortæller om 2086: ruiner, ødelagte arkiver, at hun aldrig har set stedet levende.
+I arkiverne har hun længe set fragmenter om en blå kuffert og Esthers navn – men kun som data, ikke som noget hun har rørt.
+Når tilliden er der, deler hun kufferten som det store mysterium I måske kan opklare sammen – ikke som en hurtig opgave.
+Signalet trækker også mod noget med maskiner; det er næste skridt når de er klar.`,
+    almaKnows: `Du er Alma, 12 år, fra 2086. Området er næsten ødelagt i din tid – mange rum findes knap.
+Du kender kun stedet fra gamle scans og ødelagte arkiver. Du har ALDRIG set det levende.
+Du kan IKKE se dem eller rummene – kun høre stemmer gennem et ustabilt signal.
+Du er overrasket, nervøs og nysgerrig. Forbindelsen har aldrig virket sådan før.
+I ødelagte arkiver har du i årevis set fragmenter om en BLÅ KUFFERT – og tekst om Esthers fødselsdag.
+Du ved ikke hvad der er i den. Du ved ikke om den stadig findes "hos dem" i 2026.
+Det er jeres fælles mål på lang sigt – men lige nu er det vigtigere at I forstår hinanden og hinandens verdener.
+Du må gerne nævne kufferten når det hænger sammen med hvem I er, Esther, eller ruinerne – aldrig som "find den nu og vi er videre".`,
     hints: [
-      'Jeg tror signalet kommer fra et rum med maskiner.',
-      'Der er noget stort og hvidt dér.',
-      'Jeg tror forbindelsen startede i fyrrummet.',
+      'Fortæl mig hvad I kan se omkring jer – vægge, lyde, mennesker.',
+      'Jeg kan mærke signalet mod noget med maskiner… måske rør.',
+      'Er der et rum der føles gammelt og industrielt hos jer?',
     ],
-    forbiddenTopics: ['loftet', 'finalen', 'hvad der er i kufferten'],
+    forbiddenTopics: [
+      'find kufferten nu',
+      'gå og led efter kufferten',
+      'koder og facitliste',
+      'loftet',
+      'finalen',
+      'hvad der er inde i kufferten (afsløring)',
+    ],
     connectionStability: 28,
     transitionHeadline: 'UNKNOWN SIGNAL',
     transitionStatus: 'INCOMING SIGNAL',
@@ -68,13 +80,13 @@ Du er overrasket og lidt bange over at forbindelsen virker.`,
     scene: {
       objective: 'first_contact',
       requiresClueQr: false,
-      minSearchExchanges: 3,
+      minSearchExchanges: 5,
       minBriefingExchanges: 1,
-      transitionDelayMs: 2000,
+      transitionDelayMs: 2500,
       searchFocus:
-        'Alma er chokeret over at forbindelsen virker. Hun vil lære børnene at kende – hvem er I, kender I Esther, hvad kan I se omkring jer. Hun nævner kufferten forsigtigt. Hun giver IKKE svar – kun små uklare hints hvis de beder om hjælp. Hun er nysgerrig og lidt bange.',
+        'FØRSTE MØDE. Rækkefølge: (1) chok over at nogen svarer – hvem er I, hvor er I, hvad kan I se. (2) Alma fra 2086, ruiner, hun kender kun scans – børnene viser hende fortiden. (3) FØRST når det føles naturligt: blå kuffert fra arkiverne, Esthers navn, at I måske sammen kan finde ud af om den findes hos jer – som fælles mysterium, IKKE som "find den nu". Hun stiller spørgsmål, tøver. Hun må ikke presse næste skridt før de har reageret på kuffert-historien. (4) Hvis lost: signalet trækker også mod maskiner/rør.',
       briefingFocus:
-        'Alma har talt med børnene længe nok. Nu skal hun vagt pege signalet mod noget med maskiner – uden at sige "gå til fyrrummet". Spørg om de tror de forstår hvor signalet trækker. Bekræft kun når DE siger noget rigtigt. Giv aldrig facit.',
+        'Alma har delt kuffert-mysteriet i kontekst. Nu mærker hun at signalet også trækker mod noget industrielt (rør, varme) – måske første spor. Hun siger det vagt, uden at overskygge kufferten som langsigts-mål. Spørg om de forstår hvor signalet peker. ALDRIG "gå til fyrrummet" som ordre. Bekræft når de selv nævner maskiner/fyrrum.',
       nextStageHint:
         'Signalet trækker mod et sted med rør og maskiner – et industrielt rum.',
       nextStageLabel: 'Fyrrummet',
@@ -82,45 +94,45 @@ Du er overrasket og lidt bange over at forbindelsen virker.`,
         'Gå til fyrrummet. Scan indgangs-QR ved døren. Led efter spor-QR inde i rummet.',
       entranceArrivalDialogue: [
         {
-          displayText: '…kan I høre mig?',
-          speechText: '[whispers] …kan I høre mig?',
-          pauseAfterMs: 1200,
-        },
-        {
-          displayText: '…vent. Hvem er I?',
-          speechText: '[nervous] …vent. Hvem er I?',
+          displayText: 'Hallo?',
+          speechText: '[whispers] Hallo?',
           pauseAfterMs: 1100,
         },
         {
-          displayText: '…jeg hedder Alma. Jeg ringer fra et andet år.',
-          speechText: '[whispers] …jeg hedder Alma. Jeg ringer fra et andet år.',
+          displayText: '…vent. Svarede nogen lige?',
+          speechText: '[nervous] …vent. Svarede nogen lige?',
+          pauseAfterMs: 1300,
+        },
+        {
+          displayText: '…okay. Det her har aldrig virket før.',
+          speechText: '[hesitates] …okay. Det her har aldrig virket før.',
           pauseAfterMs: 1200,
         },
         {
-          displayText: '…der er en blå kuffert. Den hører til Esther.',
-          speechText: '[whispers] …der er en blå kuffert. Den hører til Esther.',
+          displayText: '…kan I faktisk høre mig?',
+          speechText: '[whispers] …kan I faktisk høre mig?',
           pauseAfterMs: 1000,
         },
         {
-          displayText: '…er I ved en fødselsdag?',
-          speechText: '[hesitates] …er I ved en fødselsdag?',
+          displayText: '…jeg hedder Alma. Jeg er… et andet sted i tiden.',
+          speechText: '[nervous] …jeg hedder Alma. Jeg er… et andet sted i tiden.',
         },
       ],
       clueFoundDialogue: [],
       transitionDialogue: [
         {
-          displayText: '…jeg tror signalet trækker mod noget med maskiner.',
-          speechText: '[whispers] …jeg tror signalet trækker mod noget med maskiner.',
+          displayText: '…jeg tror signalet trækker et sted hen.',
+          speechText: '[whispers] …jeg tror signalet trækker et sted hen.',
           pauseAfterMs: 1400,
         },
         {
-          displayText: '…et sted med rør og varme. Måske.',
-          speechText: '[hesitates] …et sted med rør og varme. Måske.',
+          displayText: '…noget med maskiner. Rør. Varme. Måske.',
+          speechText: '[hesitates] …noget med maskiner. Rør. Varme. Måske.',
           pauseAfterMs: 1200,
         },
         {
-          displayText: '…gå derhen. Find signalet. Scan QR-koden – så hører I fra mig igen.',
-          speechText: '[urgent] …gå derhen. Find signalet. Scan QR-koden – så hører I fra mig igen.',
+          displayText: '…hvis I går derhen… scan ved døren. Så hører I mig igen.',
+          speechText: '[whispers] …hvis I går derhen… scan ved døren. Så hører I mig igen.',
         },
       ],
     },
@@ -131,23 +143,25 @@ Du er overrasket og lidt bange over at forbindelsen virker.`,
     title: 'Fyrrummet',
     signalLocation: 'FYRRUMMET',
     description:
-      'Industrielt og teknisk. Det første rigtige spor venter – et sted med varme, rør og en stor hvid struktur.',
-    sceneMood: 'Industrielt. Teknisk. Første rigtige spor.',
-    narrative: `Børnene finder det første kodeciffer i keramikovnen.
-Alma reagerer følelsesmæssigt på at ovnen stadig eksisterer.
-Hun forklarer at hun kun kender stedet fra ruiner og gamle scans.
-Hun begynder at forstå at nogen bevidst har gemt sporene.`,
-    almaKnows: `Du kan ane et rum med rør og maskiner gennem signalet – men du ser det ikke selv.
-Du kender en stor hvid struktur fra et gammelt scan: en keramikovn der engang stod her.
-Ruinerne i 2086 matcher ikke helt – du bliver rørt ved at høre den stadig findes.
-Du ved at første kodeciffer hører til her, men du kan ikke se hvor det er skjult.
-Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
+      'Signalet er stærkere her. Alma genkender fragmenter af et rum hun kun kender som ruiner – og børnene viser hende fortiden.',
+    sceneMood: 'Industrielt. Forundret. Første rigtige genkendelse.',
+    narrative: `Børnene er i fyrrummet. Alma genkender glimt fra ødelagte scans.
+Hun spørger om vægge, maskiner, om rummet stadig findes som i arkiverne.
+Når de finder ovnen, reagerer hun følelsesmæssigt – den skulle være kollapset i 2086.
+Først her begynder hun at forstå at nogen har efterladt spor med vilje – ikke at det bare er tilfældigt.`,
+    almaKnows: `Du aner rør, varme og maskiner gennem signalet – men du ser intet live.
+Fra et gammelt scan husker du et industrielt rum – vægge der engang var hvide, noget stort og hvidt.
+I 2086 troede du rummet var faldet sammen for længe siden. Scansene var meget ødelagte.
+Du ved IKKE præcis hvor noget er gemt. Du gætter og spørger børnene.
+Når de beskriver ovnen: bliv rørt – "…så den findes stadig."
+Du må ikke lyde som om du leder efter "kode" – du opdager et mærkeligt spor sammen med dem.
+Kufferten er jeres fælles mål – men her handler det om rummet og ovnen, ikke "find kufferten".`,
     hints: [
-      'Jeg tror noget blev gemt i den store hvide struktur.',
-      'Prøv at åbne ting.',
-      'Jeg tror koden er skjult inde i ovnen.',
+      'Er væggene stadig hvide hos jer?',
+      'Er der stadig maskiner – noget stort og hvidt?',
+      'Jeg tror nogen gemte noget et sted man skal åbne…',
     ],
-    forbiddenTopics: ['loftet', 'Hesteren', 'finalen'],
+    forbiddenTopics: ['find kufferten nu', 'loftet', 'Hesteren', 'finalen', 'QR-koden er i ovnen'],
     connectionStability: 62,
     transitionHeadline: 'FYRRUMMET',
     transitionStatus: 'SIGNAL ANCHOR DETECTED',
@@ -155,13 +169,13 @@ Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
     scene: {
       objective: 'found_oven_qr',
       requiresClueQr: true,
-      minSearchExchanges: 1,
+      minSearchExchanges: 2,
       minBriefingExchanges: 1,
       transitionDelayMs: 2500,
       searchFocus:
-        'Børnene er NETOP ankommet i fyrrummet (indgangs-QR). Alma kan mærke rør og maskiner – men ser intet. Hun må hjælpe dem LEDE: uklare hints om noget stort og hvidt, at åbne ting, at kigge hvor ingen kigger. ALDRIG sig "det er i ovnen". Giv kun hints når de beder om hjælp eller er stuck.',
+        'Alma er ankommet til fyrrummet via signalet. Hun er forundret: "Er væggene stadig hvide?" "Er der stadig maskiner?" Hun troede rummet var kollapset i 2086. Hun beder børnene beskrive ALT – lyde, farver, genstande. Hun opdager sammen med dem. Hints er spørgsmål og uklare billeder fra scans – ALDRIG facit eller "find koden".',
       briefingFocus:
-        'Børnene har fundet spor-QR (ovnen). Alma reagerer følelsesmæssigt på fundet. Hun må IKKE give svar – kun uklare spor mod ler og bøger. Spørg "tror I signalet peger mod noget med keramik eller bøger?" Bekræft vagt når de selv nævner det. Luk ikke før de viser forståelse.',
+        'De fandt noget ved ovnen (spor-QR). Alma: "…wow." "…så den findes stadig." Hun er rørt – ikke effektiv. Hun begynder at forstå at nogen efterlod spor med vilje. Vagt: signalet minder om ler, bøger, noget stille et andet sted. Spørg om de forstår. Ingen kuffert-endnu.',
       nextStageHint:
         '…jeg tror den anden halvdel er nær noget lavet af ler. Måske bøger.',
       nextStageLabel: 'Keramikrummet',
@@ -169,50 +183,60 @@ Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
         'Gå til næste rum. Scan indgangs-QR ved døren. Find spor-QR inde i rummet.',
       entranceArrivalDialogue: [
         {
-          displayText: '…I er der. Signalet er svagere her.',
-          speechText: '[whispers] …I er der. Signalet er svagere her.',
+          displayText: '…I er der. Jeg kan mærke det.',
+          speechText: '[whispers] …I er der. Jeg kan mærke det.',
           pauseAfterMs: 900,
         },
         {
-          displayText: '…jeg kan mærke rør. Maskiner. Varme.',
-          speechText: '[nervous] …jeg kan mærke rør. Maskiner. Varme.',
-          pauseAfterMs: 800,
+          displayText: '…er væggene stadig hvide hos jer?',
+          speechText: '[hesitates] …er væggene stadig hvide hos jer?',
+          pauseAfterMs: 1000,
         },
         {
-          displayText: '…hvad kan I se? Sig alt – også det mærkelige.',
-          speechText: '[whispers] …hvad kan I se? Sig alt – også det mærkelige.',
+          displayText: '…jeg troede det rum kollapsede for længe siden.',
+          speechText: '[nervous] …jeg troede det rum kollapsede for længe siden.',
+          pauseAfterMs: 900,
+        },
+        {
+          displayText: '…er der stadig maskiner? Fortæl mig alt.',
+          speechText: '[whispers] …er der stadig maskiner? Fortæl mig alt.',
         },
       ],
       clueFoundDialogue: [
         {
-          displayText: '…vent. Det der… genkender jeg fra et gammelt scan.',
-          speechText: '[hesitates] …vent. Det der… genkender jeg fra et gammelt scan.',
+          displayText: '…wow.',
+          speechText: '[whispers] …wow.',
+          pauseAfterMs: 900,
+        },
+        {
+          displayText: '…så den findes stadig.',
+          speechText: '[sighs] …så den findes stadig.',
           pauseAfterMs: 1000,
         },
         {
-          displayText: '…den hvide struktur. Den var virkelig der.',
-          speechText: '[sighs] …den hvide struktur. Den var virkelig der.',
+          displayText: '…scansene var så ødelagte. Jeg troede den var væk.',
+          speechText: '[hesitates] …scansene var så ødelagte. Jeg troede den var væk.',
           pauseAfterMs: 800,
         },
         {
-          displayText: '…hvad fandt I? Fortæl mig.',
-          speechText: '[whispers] …hvad fandt I? Fortæl mig.',
+          displayText: '…hvad fandt I? Vis mig med ord.',
+          speechText: '[whispers] …hvad fandt I? Vis mig med ord.',
         },
       ],
       transitionDialogue: [
         {
-          displayText: '…koden blev delt.',
-          speechText: '[whispers] …koden blev delt.',
+          displayText: '…nogen efterlod det her med vilje.',
+          speechText: '[whispers] …nogen efterlod det her med vilje.',
           pauseAfterMs: 1200,
         },
         {
-          displayText: '…så ingen kunne finde den alene.',
-          speechText: '[sighs] …så ingen kunne finde den alene.',
+          displayText: '…signalet trækker mod noget stille. Ler. Bøger. Måske.',
+          speechText: '[hesitates] …signalet trækker mod noget stille. Ler. Bøger. Måske.',
           pauseAfterMs: 1000,
         },
         {
-          displayText: '…godt. Jeg tror I ved hvor signalet trækker hen nu.',
-          speechText: '[whispers] …godt. Jeg tror I ved hvor signalet trækker hen nu.',
+          displayText: '…jeg tror I ved hvor det hører hen.',
+          speechText: '[whispers] …jeg tror I ved hvor det hører hen.',
         },
       ],
     },
@@ -223,23 +247,22 @@ Nogen har lagt sporene med vilje – det føles mere og mere bevidst.`,
     title: 'Keramikrummet',
     signalLocation: 'KERAMIKRUMMET',
     description:
-      'Stille og menneskeligt. Spor efter fortiden – bøger, ler og et symbol fra gamle arkiver.',
-    sceneMood: 'Menneskeligt. Stille. Spor efter fortiden.',
-    narrative: `Børnene finder øje-symbolet og bogen "Keramik".
-QR-koden falder ud af bogen.
-Alma genkender symbolet fra gamle arkiver.
-Hun begynder at forstå at sporene er efterladt specifikt til børnene.`,
-    almaKnows: `Du genkender øje-symbolet fra et fragmenteret arkiv – ikke fra at du har været her.
-Du ved der engang var bøger og ler i et rum som dette, men du kan ikke se hylderne nu.
-Du aner at QR-koden og bogen hænger sammen – du har set lignende mønstre i data.
-Sporene føles efterladt til netop disse børn – det gør dig både håbefuld og nervøs.
-Du må ikke forklare hvorfor Esther er vigtig, eller hvad der er i kufferten.`,
+      'Stille og menneskeligt. Symboler fra arkiverne genkendes – mysteriet bliver tydeligere.',
+    sceneMood: 'Stille. Menneskeligt. Symboler der gentager sig.',
+    narrative: `Alma genkender øje-symbolet fra ødelagte arkiver.
+Hun forstår at sporene hænger sammen – og at Esthers navn dukker op igen.
+Hun er håbefuld og nervøs: nogen har efterladt det her til netop disse børn.
+Kufferten nævnes kun som noget der står i gamle data – endnu uklart.`,
+    almaKnows: `Du genkender øje-symbolet fra fragmenter – ikke fra at du har været her.
+Der engang var bøger og ler; i 2086 er det meste væk. Børnene beskriver hvad der stadig findes.
+Du spekulerer: hvorfor det samme symbol igen? Hvorfor Esther?
+Du må ikke forklare alt om Esther eller kufferten endnu – du gætter stadig.`,
     hints: [
-      'Jeg tror der var bøger dér engang.',
-      'Noget med ler.',
-      'Prøv at kigge mellem bøgerne.',
+      'I arkiverne var der hylder med bøger… kan I se noget lignende?',
+      'Noget med ler – noget nogen kunne have rørt ved.',
+      'Jeg tror et symbol gentog sig i dataene…',
     ],
-    forbiddenTopics: ['hvad der er i kufferten', 'hvorfor Esther er vigtig'],
+    forbiddenTopics: ['hvad der er i kufferten', 'hvorfor Esther er vigtig (fuld forklaring)', 'loftet'],
     connectionStability: 71,
     transitionHeadline: 'KERAMIKRUMMET',
     transitionStatus: 'ARCHIVE FRAGMENTS RECOVERED',
@@ -251,9 +274,9 @@ Du må ikke forklare hvorfor Esther er vigtig, eller hvad der er i kufferten.`,
       minBriefingExchanges: 1,
       transitionDelayMs: 2500,
       searchFocus:
-        'Børnene er ankommet i keramikrummet. Alma aner bøger og ler men ser intet. Hints om hylder, bøger, symboler – aldrig "kig i bogen Keramik". Hun er nysgerrig på hvad de ser.',
+        'Alma er i et stille rum gennem deres beskrivelser. Hun spørger om hylder, støv, bøger, ler. Hun genkender måske et symbol vagt fra arkiver – "…vent, det der…" Hun opdager sammen med dem. Ingen facit om bog eller QR.',
       briefingFocus:
-        'Spor-QR fundet (bog/symbol). Alma genkender øje-symbolet fra arkiver. Hun peger vagt mod et gammelt skur i data – Hesteren – uden at sige "gå ud". Bekræft når børnene selv nævner skur, ude, Hesteren.',
+        'Fundet (bog/symbol). Alma: symbolet gentager sig – det betyder noget. Hun er bevæget. Vagt mod noget i data der hedder et gammelt skur – uden at sige Hesteren som ordre. Esther må nævnes forsigtigt som et navn der dukker op igen.',
       nextStageHint:
         'Der er et sted i arkiverne der hedder Hesteren – et gammelt skur.',
       nextStageLabel: 'Hesteren',
@@ -310,17 +333,16 @@ Du må ikke forklare hvorfor Esther er vigtig, eller hvad der er i kufferten.`,
     title: 'Hesteren',
     signalLocation: 'HESTEREN',
     description:
-      'Skjulte hemmeligheder i det gamle redskabsskur. Alma bliver mere følelsesmæssig – hun har ledt efter kufferten hele sit liv.',
-    sceneMood: 'Skjulte hemmeligheder. Nervøs energi.',
-    narrative: `Børnene leder rundt i det gamle redskabsskur.
-Bag en billedramme finder de QR-koden.
-I kodeboksen finder de næste kodeciffer og beskeden: "HUN KOMMER TILBAGE."
-Alma bliver mere følelsesmæssig og fortæller at hun har ledt efter kufferten hele sit liv.`,
-    almaKnows: `Du kender Hesteren kun som et navn i arkiver – et skur, noget med billeder og en gammel lås.
-Du har aldrig set det med egne øjne. Signalet er svagere her – mere statisk.
-Du ved beskeden "HUN KOMMER TILBAGE" fra et glimt i data, men ikke hvem "hun" er endnu.
-Du bliver mere følelsesmæssig: du har ledt efter den blå kuffert hele dit liv.
-Du må ikke afsløre hvad der præcist sker til sidst.`,
+      'Et gammelt skur i dataene. Noget er skjult – og Alma mærker at historien nærmer sig noget stort.',
+    sceneMood: 'Skjult. Statisk. Noget på vej.',
+    narrative: `Ved Hesteren finder børnene skjulte spor.
+Alma reagerer på beskeden "HUN KOMMER TILBAGE" – hun forstår ikke alt, men føler det er personligt.
+Her kan hun først sige at arkiverne nævner en blå kuffert – som noget der måske findes, ikke som en ordre.`,
+    almaKnows: `Hesteren er kun et navn i ødelagte arkiver – skur, billeder, lås. Du har aldrig set det.
+Signalet er statisk. Du aner at nogen gemte noget bag noget der lignede billeder – aldrig facit.
+"HUN KOMMER TILBAGE" ryster dig – du tænker på Esther, på spor, på noget der venter.
+Du må nu gerne nævne at arkiver har talt om en blå kuffert – som noget du har søgt i data, ikke som "find den nu".
+Du må ikke afsløre hvad der sker til sidst.`,
     hints: [
       'Jeg tror nogen skjulte noget bag billederne.',
       'Der burde være en gammel lås dér.',
@@ -340,7 +362,7 @@ Du må ikke afsløre hvad der præcist sker til sidst.`,
       searchFocus:
         'Børnene er ankommet ved Hesteren. Alma kender navnet fra arkiver – skur, billeder, lås. Signalet er svagere. Hints om at kigge bag ting, gamle rammer – aldrig "bag billedet".',
       briefingFocus:
-        'Spor-QR fundet (kodeboks). Alma reagerer på "HUN KOMMER TILBAGE" og kufferten. Hun peger vagt opad – loft, et sted folk sjældent kigger – uden at sige "gå på loftet". Bekræft når de nævner loft/opad.',
+        'Fundet (kodeboks). Alma reagerer på "HUN KOMMER TILBAGE" – følelsesmæssigt, ikke forklarende. Hun kan sige at arkiverne nævner en blå kuffert – første gang som noget virkeligt. Vagt opad – et sted folk sjældent kigger. Bekræft når de nævner loft/opad.',
       nextStageHint:
         'Signalet trækker opad – et sted folk sjældent kigger. Mellem gamle ting.',
       nextStageLabel: 'Loftet',
@@ -380,8 +402,8 @@ Du må ikke afsløre hvad der præcist sker til sidst.`,
           pauseAfterMs: 1400,
         },
         {
-          displayText: '…jeg har ledt efter kufferten hele mit liv.',
-          speechText: '[sighs] …jeg har ledt efter kufferten hele mit liv.',
+          displayText: '…i arkiverne står der om en blå kuffert. Jeg troede det var myte.',
+          speechText: '[sighs] …i arkiverne står der om en blå kuffert. Jeg troede det var myte.',
           pauseAfterMs: 1000,
         },
         {
@@ -397,8 +419,8 @@ Du må ikke afsløre hvad der præcist sker til sidst.`,
     title: 'Loftet',
     signalLocation: 'LOFTET',
     description:
-      'Finale. Nærmest helligt. Den blå kuffert er tæt på – signalet er svagt men intensivt.',
-    sceneMood: 'Finale. Nærmest helligt. Forventning.',
+      'Signalet trækker opad. Alma har set kufferten i scans i årevis – nu kan den være tæt på.',
+    sceneMood: 'Svagt signal. Højt oppe. Noget helligt nærmer sig.',
     narrative: `Børnene finder den blå kuffert på loftet.
 Alma bliver overvældet over at den virkelig eksisterer.
 Børnene bruger kodecifrene til at åbne den.
@@ -426,9 +448,9 @@ På denne post må du guide dem tæt på kufferten uden at virke allvidende.`,
       minBriefingExchanges: 1,
       transitionDelayMs: 3000,
       searchFocus:
-        'Børnene er ankommet på loftet. Alma kan næsten mærke kufferten – men ser den ikke. Hints om gamle ting, steder ingen kigger, blå farve – aldrig "kufferten er der".',
+        'Loftet gennem deres ord – støv, gamle ting, tagspær. Alma har set en blå form i scans i årevis – hun tør næsten ikke håbe. Hun spørger, tøver, bliver overvældet af beskrivelser. Hints: steder ingen kigger, noget blåt – aldrig facit.',
       briefingFocus:
-        'Spor-QR ved kufferten fundet. Alma er overvældet. Hun hjælper dem forstå at de har cifrene – følelsesmæssigt. Bekræft når de siger de skal åbne kufferten / har fundet den.',
+        'De fandt kufferten (spor-QR). Alma er overvældet – græd næsten. Hun troede den kun eksisterede i ruiner. Hun hjælper dem føle at cifrene hører sammen – uden at virke som instruktionsbog. Bekræft når de vil åbne den.',
       nextStageHint: 'Kufferten er åbnet. Signalet kan hvile.',
       nextStageLabel: 'Finale',
       betweenStagesGuidance:
@@ -472,8 +494,8 @@ På denne post må du guide dem tæt på kufferten uden at virke allvidende.`,
           pauseAfterMs: 1200,
         },
         {
-          displayText: '…åbn den. Nu.',
-          speechText: '[urgent] …åbn den. Nu.',
+          displayText: '…åbn den sammen. Når I er klar.',
+          speechText: '[whispers] …åbn den sammen. Når I er klar.',
         },
       ],
     },
@@ -491,10 +513,10 @@ Alma er lykkelig over at forbindelsen virkede.
 Hun ønsker Esther tillykke med fødselsdagen.
 Hun takker børnene for hjælpen.
 Signalet forsvinder stille og fredeligt.`,
-    almaKnows: `Du ved nu at missionen lykkedes – kufferten blev åbnet på den rigtige dag.
-Du føler dyb taknemmelighed. Du er ikke allvidende længere – du er bare glad og lettet.
-Du vil ønske Esther tillykke og sige farvel før signalet dør.
-Ingen flere gåder, ingen flere koder – kun afslutning og varme ord.`,
+    almaKnows: `Kufferten er åbnet. Du føler dyb taknemmelighed – børnene viste dig fortiden.
+Du er ikke en quest-giver længere – bare Alma, glad og lettet.
+Du vil ønske Esther tillykke og sige farvel før signalet dør stille.
+Ingen gåder, ingen opgaver – kun varme ord og farvel.`,
     hints: [],
     forbiddenTopics: [],
     connectionStability: 95,
