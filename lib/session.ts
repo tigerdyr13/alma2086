@@ -1,4 +1,4 @@
-import type { StageId } from './stages';
+import { STAGE_IDS, type StageId } from './stages';
 
 export interface ChatMessage {
   role: 'user' | 'alma';
@@ -55,6 +55,34 @@ export function saveStageSession(stageId: StageId, session: StageSession): void 
 export function clearStageSession(stageId: StageId): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(storageKey(stageId));
+}
+
+export interface StageSessionSummary {
+  stageId: StageId;
+  messageCount: number;
+  hintLevel: number;
+  visitedAt: string | null;
+  updatedAt: string | null;
+  hasData: boolean;
+}
+
+export function getAllStageSessionSummaries(): StageSessionSummary[] {
+  return STAGE_IDS.map((stageId) => {
+    const session = loadStageSession(stageId);
+    const hasData = session.messages.length > 0 || session.hintLevel > 0;
+    return {
+      stageId,
+      messageCount: session.messages.length,
+      hintLevel: session.hintLevel,
+      visitedAt: hasData ? session.visitedAt : null,
+      updatedAt: hasData ? session.updatedAt : null,
+      hasData,
+    };
+  });
+}
+
+export function clearAllStageSessions(): void {
+  STAGE_IDS.forEach((stageId) => clearStageSession(stageId));
 }
 
 function emptySession(): StageSession {

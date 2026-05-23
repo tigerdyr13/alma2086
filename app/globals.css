@@ -849,3 +849,193 @@ body::before {
   font-size: 10px;
 }
 
+/* ── Admin reset (skjult kontrolside) ─────────────── */
+.admin-reset {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--color-bg);
+}
+
+.admin-reset-inner {
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid rgba(255, 229, 102, 0.35);
+  padding: 28px 20px;
+  border-radius: var(--radius);
+  background: rgba(255, 229, 102, 0.04);
+  animation: fade-in 0.8s ease;
+}
+
+.admin-reset-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--color-yellow);
+  margin-bottom: 12px;
+}
+
+.admin-reset-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  color: var(--color-yellow);
+  margin-bottom: 12px;
+}
+
+.admin-reset-text {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.admin-reset-text strong {
+  color: var(--color-cyan);
+  font-weight: 700;
+}
+
+.admin-reset-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.admin-reset-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.admin-reset-table th,
+.admin-reset-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-reset-table th {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.admin-reset-table td {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.admin-reset-row--active td:first-child {
+  color: var(--color-cyan);
+}
+
+.admin-reset-stage-btn {
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.admin-reset-stage-btn:hover:not(:disabled),
+.admin-reset-stage-btn:focus-visible {
+  color: var(--color-yellow);
+  border-color: rgba(255, 229, 102, 0.5);
+}
+
+.admin-reset-stage-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-reset-empty {
+  color: var(--color-text-dim);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.admin-reset-status {
+  color: var(--color-green);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.admin-reset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-reset-all-btn {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-red);
+  background: rgba(255, 59, 92, 0.08);
+  border: 1px solid rgba(255, 59, 92, 0.45);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.admin-reset-all-btn:hover:not(:disabled),
+.admin-reset-all-btn:focus-visible {
+  box-shadow: 0 0 16px var(--color-red-glow);
+}
+
+.admin-reset-all-btn--confirm {
+  background: rgba(255, 59, 92, 0.2);
+  animation: pulse-red 1.2s ease infinite;
+}
+
+.admin-reset-all-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-reset-cancel-btn {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.admin-reset-link {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-cyan);
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+}
+
+.admin-reset-link:hover {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 16px var(--color-cyan-glow);
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
